@@ -3,6 +3,7 @@
 #copy wsn_setting files
 cp -rf /home/adv/api_gw/apps/wsn_manage/wsn_setting/* /home/adv/wsn_setting/
 cp -rf /home/adv/api_gw/* /home/adv/APIGateway/
+chmod -R a+wrx /home/adv/APIGateway/
 
 #only remove subdirectoy
 mkdir -p /home/adv/wsn_setting/device_html
