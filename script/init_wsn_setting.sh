@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #copy wsn_setting files
-if [ ! -d /home/adv/api_gw/.git ] ; then
+if [ ! -d /home/adv/APIGateway/.git ] ; then
     cp -rf /home/adv/api_gw/* /home/adv/APIGateway/
     cp -rf /home/adv/api_gw/.git /home/adv/APIGateway/
     chmod -R a+rw /home/adv/APIGateway/
