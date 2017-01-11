@@ -1341,6 +1341,7 @@ function getIoTGWConnectivityCapability( dataType ){
     if ( typeof IoTGWCapability.IoTGW[connectivityType][connectivityName] === 'undefined' ){
       IoTGWCapability.IoTGW[connectivityType][connectivityName] = {};
     } 
+    IoTGWCapability.IoTGW[connectivityType]['bn'] = connectivityType;
         
     switch (dataType){
       case DATATYPE.CONNECTIVITY_INFOSPEC:
@@ -1387,6 +1388,7 @@ function getIoTGWConnectivityCapability( dataType ){
     if ( typeof IoTGWCapability.IoTGW[connectivityType][connectivityName] === 'undefined' ){
       IoTGWCapability.IoTGW[connectivityType][connectivityName] = {};
     } 
+    IoTGWCapability.IoTGW[connectivityType]['bn'] = connectivityType;
 
     switch (dataType){
       case DATATYPE.CONNECTIVITY_INFOSPEC:
