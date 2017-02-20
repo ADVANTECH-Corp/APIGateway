@@ -350,6 +350,10 @@ var mqttMessageCallback = function (topic, message){
       {
           console.log('[' + device_id + ']' + ': receive SENSORHUB_CONNECT');
           sensorHubMapUpdate(MSG_TYPE.SENSORHUB_CONNECT, device_id, message.toString());
+	  // snend Get Capability
+	  var messageObj = {};
+	  buildRequestMessageObj( MSG_TYPE.VGW_GET_CAPABILITY_REQUEST, messageObj );
+	  sendRequestToWiseSnail( device_id, messageObj );
           break;
       }
     case MSG_TYPE.SENSORHUB_DISCONNECT:
@@ -782,6 +786,7 @@ function sensorHubMapUpdate(messageType, device_id, message){
         }
 
         if ( MSG_TYPE.SENSORHUB_INFO_SPEC === messageType){
+	  message = message.replace(/[\u0000-\u0019]+/g,"");
           sensorhub.dev_info_spec = message;
 	  var keyStr = '';
 	  var fullInfoObj = JSON.parse(message);
