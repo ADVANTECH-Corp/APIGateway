@@ -1,8 +1,13 @@
 require('getmac').getMac(function(err,macAddress){
     if (err)  throw err;
     console.log('-----------------------------');
-    console.log('getMac: ' + macAddress);   
-    var mac = macAddress.toString().replace(/:/g,'');
+    console.log('getMac: ' + macAddress); 
+    
+    if( process.env.MAC != undefined )	
+     var mac = process.env.MAC.replace(/:/g,'') || macAddress.toString().replace(/:/g,'');
+    else
+     var mac = macAddress.toString().replace(/:/g,'');
+
     gHostConnectivity = '0007' + mac;
     //console.log( 'gHostConnectivity = ' + gHostConnectivity );
 });
@@ -156,14 +161,14 @@ var lastTime= new Date().getTime();
 setInterval(function () {
   var currentTime = new Date().getTime();
   var diffTime = (currentTime - lastTime);
-  console.log('[Check HeartBeat] Wakeup to check... diffTime= ' + diffTime + ' ms');
+  // console.log('[Check HeartBeat] Wakeup to check... diffTime= ' + diffTime + ' ms'); //eric mark
   lastTime = currentTime;
   //
   VgwMap.forEach(function(obj, key) {
 
     if ( obj.dev_last_hb_time > 0 ){
       var devDiffTime = currentTime - obj.dev_last_hb_time;
-      console.log('[Check HeartBeat][' + key + ']: diffTime = ' + devDiffTime + ' ms');
+      // console.log('[Check HeartBeat][' + key + ']: diffTime = ' + devDiffTime + ' ms'); // eric mark
       if ( devDiffTime > HEART_BEAT_TIMEOUT * 3 ){
         console.log('[Check HeartBeat][' + key + ']: HeartBeat timeout');
         removeVGW( key );
@@ -186,6 +191,12 @@ var mqttConnectCallback =  function () {
   Client.subscribe('/cagent/admin/+/agentactionreq');
   Client.subscribe('/cagent/admin/+/deviceinfo'); 
    
+}
+
+var mqttDisconnectCallback = function() {
+	console.log('[wisesnail_msgmgr] Mqtt disconnected !!!');
+
+	removeAllVGW();
 }
 
 var mqttMessageCallback = function (topic, message){
@@ -212,7 +223,7 @@ var mqttMessageCallback = function (topic, message){
   switch(msg_type){
     case MSG_TYPE.VGW_HEART_BEAT:
       {
-        console.log('[' + device_id + ']' + ': receive VGW_HEART_BEAT');
+        //console.log('[' + device_id + ']' + ': receive VGW_HEART_BEAT');  eric mark
         //dev_last_hb_time
         if ( doesVGWNeedReConnect(device_id) === true ) {
           //Send Re-connect
@@ -362,6 +373,10 @@ var mqttMessageCallback = function (topic, message){
           if ( SensorHubMap.has(device_id) === true ) {
             var sensorhub = SensorHubMap.get(device_id);
             sensorhub.connect = message.toString();
+	    var osType = getOSType( sensorhub.os_info );
+	    SensorHubMap.remove(device_id);
+	    if( osType === OS_TYPE.IP_BASE )
+	            sendIPBaseConnectivityInfoEvent();
           }
       }
     case MSG_TYPE.SENSORHUB_INFO_SPEC:
@@ -423,7 +438,7 @@ var mqttMessageCallback = function (topic, message){
 function doesVGWNeedReConnect( deviceID ){
 
  if ( VgwMap.has(deviceID) === false ) {
-   console.log('[doesVGWNeedReConnect] Cannot find ' + deviceID );
+   //console.log('[doesVGWNeedReConnect] Cannot find ' + deviceID ); // eric mark
    return true;
  }
 
@@ -448,7 +463,7 @@ function doesVGWNeedReConnect( deviceID ){
  var connectivityCount = 0;
  ConnectivityMap.forEach(function(obj, key) {
    if ( vgw.vgw_id === obj.vgw_id ){
-     console.log('[doesVGWNeedReConnect] ConnectivityMap key = ' + key);
+     // console.log('[doesVGWNeedReConnect] ConnectivityMap key = ' + key); // eric mark
      connectivityCount ++;
    }
  });
@@ -786,7 +801,7 @@ function sensorHubMapUpdate(messageType, device_id, message){
         }
 
         if ( MSG_TYPE.SENSORHUB_INFO_SPEC === messageType){
-	  message = message.replace(/[\u0000-\u0019]+/g,"");
+	  message = message.replace(/[\u0000-\u0019]+/g,""); // eric add to remove not viewable syntax 
           sensorhub.dev_info_spec = message;
 	  var keyStr = '';
 	  var fullInfoObj = JSON.parse(message);
@@ -1107,6 +1122,15 @@ function removeVGW( vgw_id ){
     }
 
 }
+
+function removeAllVGW( ) 
+{
+   VgwMap.forEach( function( obj, key) {
+	removeVGW( key );
+   });
+}
+
+
 
 function is_ip_valid( ip ){
   
@@ -1601,6 +1625,10 @@ function getSensorHubRESTful(uri, outObj){
       var sensorHub = SensorHubMap.get(deviceID);
       if (typeof sensorHub !== 'undefined') {
         var devInfoObj = JSON.parse(sensorHub.dev_info_spec);
+	if( devInfoObj == undefined ) {
+		 console.log('[getSensorHubRESTful] Error senhub's info spce is not ready.');
+		 return RESTFUL_VAL_TYPE.ERROR;
+        }
         outObj.ret = JSON.stringify(devInfoObj.susiCommData.infoSpec);
         return RESTFUL_VAL_TYPE.SUCCESS;
       }
@@ -1908,4 +1936,5 @@ module.exports = {
 
 Client.on('connect', mqttConnectCallback );
 Client.on('message', mqttMessageCallback);
+Client.on('offline', mqttDisconnectCallback);
 
