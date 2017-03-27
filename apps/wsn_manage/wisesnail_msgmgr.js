@@ -1626,7 +1626,7 @@ function getSensorHubRESTful(uri, outObj){
       if (typeof sensorHub !== 'undefined') {
         var devInfoObj = JSON.parse(sensorHub.dev_info_spec);
 	if( devInfoObj == undefined ) {
-		 console.log('[getSensorHubRESTful] Error senhub's info spce is not ready.');
+		 console.log('[getSensorHubRESTful] Error senhub info spce is not ready.');
 		 return RESTFUL_VAL_TYPE.ERROR;
         }
         outObj.ret = JSON.stringify(devInfoObj.susiCommData.infoSpec);
