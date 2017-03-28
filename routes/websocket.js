@@ -163,9 +163,9 @@ var setWebSocket = function(wss){
     }
     else
     {
-      console.log('add in websocket '+ groupName + ' service');
+      console.log('add in websocket '+ groupName + ' service');      
+      appHandle.wsclients.push(ws);     
       appHandle.websktFn(ws);
-      appHandle.wsclients.push(ws);      
     }
 
     /*
