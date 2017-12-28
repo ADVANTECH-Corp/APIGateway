@@ -45,7 +45,8 @@ var GET_RESULT ={"Net":{"e": [{"n":"Health","v":86}],"bn":"Net"}};
 var wsclients = [];
 
 
-var Client  = Mqtt.connect('mqtt://advigw-mqtt-bus');
+var Client = Mqtt.connect('mqtt://127.0.0.1');
+//var Client  = Mqtt.connect('mqtt://advigw-mqtt-bus');
 //var Client  = Mqtt.connect('mqtt://mqtt.advigw_network');
 Client.queueQoSZero = false;
 

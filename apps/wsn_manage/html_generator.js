@@ -2,7 +2,7 @@ var EVENT = require('./html_event.js');
 var fs = require('fs');
 
 var genHtml = function(html_event, rootRESTful, data){
-
+  return;
   console.log('[html_generator.js] EVENT : ' + html_event + ', rootRESTful = ' + rootRESTful + ', data = ' + data);
   
   var devType = rootRESTful.split('/')[0];
