@@ -74,10 +74,11 @@ var loadAppService = function( router , ioSocket, wss ) {
 	//for(var j =0; j < 2; j++ ) 
 	{			
 		var app = {"n":null}; 
-		hLd = require('../apps/wsn_manage/index.js');
+		//hLd = require('../apps/wsn_manage/index.js');
+		hLd = require('../apps/esl/index.js');
 		//hLd = require('../apps/sample/index.js');
 
-		if( hLd == undefined || hLd == null ) {
+		if( hLd == undefined || hLd == null ) {	
 			console.log('handle is null');
 			return;
 		}	
@@ -143,7 +144,7 @@ var appRouter = function(router,socketio,wss) {
 	
 	router.all('*',function(req, res, next){
 		// Debug for ALL Command
-		console.log('all method captured param'+JSON.stringify(req.params) +'body=' + JSON.stringify(req.body));
+		//console.log('all method captured param'+JSON.stringify(req.params) +'body=' + JSON.stringify(req.body));
 		next();
 	});
 	loadAppService(router,socketio,wss);

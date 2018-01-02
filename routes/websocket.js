@@ -1,7 +1,5 @@
-
-var socket_io = require('socket.io');
 var HashMap = require('hashmap').HashMap;
-var io = undefined;
+var io = 'undefined';
 var STATUS = require('../inc/statusCode.js').STATUS_CODE;
 var GourpMap = new HashMap();
 
@@ -47,13 +45,14 @@ var procEventDataToWebSocket = function(group,eventType, data){
     var msg = pushMsg(group,eventType,data);
 
     // socket.io
-    if( io != undefined )
+    if(  io !== 'undefined' )
       io.to(group).emit(msgEvent,msg);		
 
     // websocket
     var app = getAppInterfacebyName(group);
     if( app != null ){
         app.wsclients.forEach(function(ws){
+          console.log('ws msg '+ msg);
           ws.send(msg);
       });
     }
@@ -78,6 +77,8 @@ var setWebSocketGoup = function( group,  // WSNManage
 var setIoSocket = function(ioSocket,apps){
   io = ioSocket;
     
+  if( io === 'undefined' ) return;
+
   ioSocket.sockets.on('connection', function(socket) {
       //console.log('apps: '+ apps);
 

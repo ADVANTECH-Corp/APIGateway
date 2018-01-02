@@ -1,7 +1,12 @@
 global.AppVersion = '1.0.0';
 
+global.SupportSockeIO = 0;
+
 var express = require("express");
-var socket_io = require('socket.io');
+var socket_io = 'undefined';
+
+if( global.SupportSockeIO == 1 )
+	socket_io = require('socket.io');
 
 var app = express();
 var router = express.Router();
@@ -77,7 +82,9 @@ var server = http.createServer(app).listen(ServerPort);
 var wss = new WebSocketServer({ server: server });
 
 // socket.io server
-var io = socket_io.listen(server);
+var io = 'undefined';
+if( global.SupportSockeIO == 1 )
+	io = socket_io.listen(server);
 
 // add to router service
 appRouter(router,io,wss);
