@@ -87,8 +87,9 @@ const GS_ESL_MODE =
 ESL_ROUTER_NAME = "ESL-Router"
 ESL_TAG_NAME = "ESL-Tag"
 
-const TRANSACTION_ID_LOW  = 10000
-const TRANSCATION_ID_HIGH = 60000
+// EVT GS only supports 1~256 : 8 bits Int
+const TRANSACTION_ID_LOW  = 1
+const TRANSCATION_ID_HIGH = 256
 
 
 // GSMART Protocol & Data Format
@@ -100,18 +101,19 @@ const GS_CMDTYPE = {
 
 // Response Code
 const GS_CODE = {
-    SUCCESS: 0,       
-    CMD_NOT_SUPPORT:   1,
+    SUCCESS: 0,
+    NOT_SUPPORT_CMD: 1,
     PARAM_ERROR: 2,
-    CMD_TIMEOUT: 3,
-    CMD_ERROR:4,
-    ROUTER_NOT_FOUND: 4,
-    TAG_NOT_FOUND: 5,
-    ROUTER_DEREGISTER: 6,
-    TAG_DEREGISTER:     768, // 0x300   
-    TAG_LOW_POWER:      769, // 0x301
-    TAG_PANEL_ERROR:    770, // 0x302
-    TAG_EX_FLASH_ERROR: 771, // 0x303
+    CMD_ERROR: 3,
+    CMD_TIMEOUT: 4,
+    ROUTER_NOT_FOUND: 5,
+    TAG_NOT_FOUND: 6,
+    TAG_UPDATE_TIMEOUT: 7,
+    TAG_LOW_POWER_ALERT: 8,
+    TAG_PANEL_ERROR: 9,
+    TAG_EX_FLASH_ERROR: 10,
+    DEVICE_IS_BUSING: 11,
+    DISCONNECT: 12
 };
 
 const GS_DEVTYPE_GENERAL    = 0;
@@ -135,21 +137,12 @@ const GS_JSON_FORMAT =
 }
 
 
-
-
 const DEV_STATUS =
 {
-    OPERATE              : 'Operate',
-    FW_UPDATING          : 'Fw Updating',
-    FW_UPDATE_OK         : 'Fw Update Completed', 
-    FW_UPDATE_FAIL       : 'Fw Update Failed',
-    IMAGE_UPDATING       : 'Image Updating',
-    IMAGE_UPDATE_OK      : 'Image Completed',
-    IMAGE_UPDATE_FAIL    : 'Image Failed',    
-    BLOCK_FW_UPDATE      : 'Device is updating fw. Can not update fw',    
-    BLOCK_FW_UPDATE_I    : 'Device is updating image. Can not update fw',    
-    BLOCK_IMAGE_UPDATE   : 'Device is updating Image. Can not update image',        
-    BLOCK_IMAGE_UPDATE_F : 'Device is updating fw. Can not update image', 
+    IDLE: 0,
+    CMD_MODE: 1,
+    UPDATING_IMAGE: 2,
+    UPDATING_FW:3
 }
 
 
@@ -178,7 +171,7 @@ const ESL_GW_INFO =
                 {n:'tx-level', v:5, asm:'rw'},
                 {n:'pan-id',v:1, asm:'r'},
                 {n:'zd-fw-version', v:1, asm:'r'},
-                {n:'status', sv:DEV_STATUS.OPERATION, asm:'r'},                
+                {n:'status', v:DEV_STATUS.IDLE, asm:'r'},                
                 {n:'reboot', bv:0, asm:'rw'}],
 
     bn: 'Info'    
@@ -190,9 +183,10 @@ const ESL_ROUTER_INFO =
     Info: {
             e:[ {n:'DeviceList', sv:'', asm:'r'},     
                 {n:'device-number', v:0, asm:'r'},            
-                {n:'tx-level-t',v:5,asm:'rw', min:1, max:10},
+                {n:'tx-level-t',v:5,asm:'rw', min:1, max:10}, // EVT not support
                 {n:'tx-level-r',v:5,asm:'rw', min:1, max:10},
                 {n:'zd-fw-version', v:0, asm:'r'},
+                {n:'status', v:DEV_STATUS.IDLE, asm:'r'}, 
                 {n:'reboot', bv:0, asm:'rw'}],
 
     bn: 'Info'    
@@ -208,7 +202,7 @@ const ESL_ROUTER_GW_INFO =
                 {n:'tx-level-t',v:5,asm:'rw', min:1, max:10},
                 {n:'tx-level-r',v:5,asm:'rw', min:1, max:10},
                 {n:'zd-fw-version', v:0, asm:'r'},
-                {n:'status', sv:DEV_STATUS.OPERATION, asm:'r'},                
+                {n:'status', v:DEV_STATUS.IDLE, asm:'r'},                
                 {n:'reboot', bv:0, asm:'rw'}],
 
     bn: 'Info'    
@@ -219,16 +213,16 @@ const ESL_TAG_INFO =
 {
     SenData: {
             e:[{n:'image-crc', sv:'', asm:'r'},
-               {n:'resolution',sv:'', asm:'r'}],
+               {n:'panel-type',sv:'', asm:'r'}],    // D33, D53
 
     bn: 'SenData'    
     },
     Info: {
-        e:[ {n:"data-request-period",v:60,asm:"rw",min:30, max:3600},
-            {n:"state-report-period",v:3600, asm:"rw",min:60, max:86400},
-            {n:"timeout",v:30,asm:"rw",min:1, max:60},
-            {n:"battery",v:70,asm:"r",min:0, max:100, u:"%"},
-            {n:'status', sv:DEV_STATUS.OPERATION, asm:'r'},            
+        e:[ {n:"data-request-period",v:60,asm:"rw",min:30, max:3600, u:"sec"},     // ( sec ) The tag asks for the command's period
+            {n:"state-report-period",v:3600, asm:"rw",min:60, max:86400, u:'sec'}, // ( sec ) The tag report period
+            {n:"timeout",v:3,asm:"rw",min:1, max:3, u:'count'},                    // count  The tag rejoin count threshold to monitor how many times data-request without response
+            {n:"battery",v:70,asm:"r",min:0, max:100, u:"%"},                      // battery ratio 0 ~ 100 %
+            {n:'status', v:DEV_STATUS.IDLE, asm:'r'},                     
             {n:"fw-version",sv:'',asm:"r"}
           ],
 
@@ -478,23 +472,61 @@ var updateData = function( devObj, eslobj, pMap, update )
 
 var procReplyData = function( dstObj, eslobj, pMap )
 {
+    var sessionId = eslobj['Transaction-Id']; 
+    var httpCode = STATUS.BAD_REQUEST;
+    var code = eslobj['Code'];
     // 1. check transcation-id
-    if( gActionMap.has(eslobj['Transaction-Id']) == false ) return;
+
+
+    if( gActionMap.has(sessionId) == false ) return;
     
-    // 2. check Code
-    if(eslobj['Code'] == GS_CODE.CODE_SUCCESS)
+    var params = gActionMap.get(sessionId);
+
+    console.log('reply from SDK '+ params);
+    switch(code)
     {
-        // 3.1 update
-        updateData( dstObj, eslobj, pMap , 1 );          
+        case GS_CODE.SUCCESS:
+        { // 3.1 update
+          if( typeof pMap.sync !== 'undefined' ) // If ok then sync set's value to Adv Structure
+          {
+            for( var i=0; i< pMap.param.length; i++) {
+                var s = pMap.param[i]['s'];
+                var d = pMap.param[i]['d'];
+                if( typeof s != 'undefined' && typeof d != 'undefined' )
+                    eslobj['Parameter'][s] = params[s];
+            }
+          }
+          updateData( dstObj, eslobj, pMap , 1 );
+          httpCode = STATUS.OK;
+        }
+        break;
+        case GS_CODE.DEVICE_IS_BUSING:
+        {
+            httpCode = STATUS.SERVICE_UNABAILABLE;
+        }   
+        break;
+        case GS_CODE.NOT_SUPPORT_CMD:
+        case GS_CODE.PARAM_ERROR:
+        {
+            httpCode = STATUS.BAD_REQUEST;            
+        }
+        break;
+        case GS_CODE.CMD_TIMEOUT:
+        {
+            httpCode = STATUS.REQUEST_TIMEOUT;        
+        }
+        break;
+        default:
+        httpCode =  STATUS.INTERNAL_SERVER_ERROR;       
     }
-    else 
+   
+    if( typeof params.cb !== 'undefined' && typeof params.res !== 'undefined' ) // HTTP Response
     {
-    // 3.2 if request by restful response
-    // <Not>
+        console.log('reply http code '+ httpCode);
+        params.cb(params.res, httpCode, '');
     }
-    
     // 4. remove
-    gActionMap.remove(eslobj['Transaction-Id']);
+    gActionMap.remove(sessionId);
 }
 
 // input: [1,2,3]
@@ -609,7 +641,7 @@ var genFullIoTGWData = function( devObj ) // GW or Router devObj
 var procGWReg = function( topic, eslobj, pMap ) 
 {
     if( typeof eslobj.Parameter[pMap.uid] == 'undefined' ) return;
-
+   
     var gwObj = 'undefined';
     var uid = eslobj.Parameter[pMap.uid];
 
@@ -741,7 +773,7 @@ var procRouterReg = function( topic, eslobj, pMap ) {
     param['devId'] = uid;
 
     esl_ActionRequest('get-tag-list', param);
-    esl_ActionRequest('get-zd-tx-power', param);
+    esl_ActionRequest('get-zd-tx-power-r', param);
 
     // send event eSenHub_Connected: note + susiCommData{eSenHub_Capability}
     var eventMsgObj = {};
@@ -936,11 +968,59 @@ var procTagReport = function( topic, eslobj, pMap )
     console.log('[tag report] ', JSON.stringify(tagObj.datainfo));       
 }
 
-var removeDev = function( devtype, uid )
-{
-    // gw -> clean all device ?
 
-    // router -> 
+var RemoveRouter = function( uid )
+{
+    var devObj = 'undefined';
+    var tagObj = 'undefined';
+
+    if( gRouterMap.has(uid) == true )  
+    {
+        devObj = gRouterMap.get(uid);     
+
+        if( typeof devObj === 'undefined') return;
+
+        devObj.taginfo.forEach(function(obj, key) { // key => tag's uid
+            tagObj = gTagMap.get(key);
+            if( typeof tagObj !== 'undefined' ) 
+            {
+                var eventMsgObj ={};
+                tagObj.devinfo.status = 0;
+                eventMsgObj.susiCommData = tagObj.devinfo;
+                eventEmitterObj.emit(groupName, groupName, WSNEVENTS[3].event, eventMsgObj);     
+                gTagMap.remove(key);   
+                gDevIDMap.remove(key);
+            }
+        });         
+        gRouterMap.remove( uid );
+        gDevIDMap.remove( uid );
+    }         
+}
+
+var RemoveTag = function( uid )
+{
+    var routerObj = 'undefined';
+    var tagObj = 'undefined';
+    
+    // remove tag info
+    if( gTagMap.has(uid) == false ) return;
+
+    tagObj = gTagMap.get(uid);
+
+    if( typeof tagObj === 'undefined' ) return;
+
+    gTagMap.remove(uid);
+
+    gDevIDMap.remove(uid);
+    // remove tag info from router 
+    routerObj = gRouterMap.get(tagObj.parent);
+
+    console.log('router '+routerObj );
+    if( typeof routerObj === 'undefined' ) return;
+    console.log('router 222'+routerObj );
+    routerObj.taginfo.remove(uid);
+
+    routerObj.rfinfo.num = routerObj.rfinfo.num - 1;
 }
 
 var procEmergancyReport = function( topic, eslobj, pMap ) 
@@ -955,7 +1035,7 @@ var procEmergancyReport = function( topic, eslobj, pMap )
     switch(type)
     {
         case 0x10: // gw
-            if( gGwMap.has(uid) == true )      devObj = gGwMap.get(uid);
+            if( gGwMap.has(gGwUid) == true )   devObj = gGwMap.get(gGwUid);
         break;
         case 0x20: // router
             if( gRouterMap.has(uid) == true )  devObj = gRouterMap.get(uid);
@@ -967,25 +1047,72 @@ var procEmergancyReport = function( topic, eslobj, pMap )
             console.log('[Emergancy] Unknow Device Type!');
     }
 
-    if( devObj === 'undefined' ) return;
+    if( typeof devObj === 'undefined' ) return;
 
     switch(code)
     {
-        case 0: //disconnect
+        case GS_CODE.DISCONNECT: //disconnect
         {
-            if( type == 1 || type == 2 ) // send disconnect event <Not Finish>
-            {
+            if( type ==  32 || type == 48 ) // send disconnect event 
+                if( type == 32 )
+                    RemoveRouter(uid);
+                else
+                    RemoveTag(uid);
+
                 var eventMsgObj ={};
                 devObj.devinfo.status = 0;
                 eventMsgObj.susiCommData = devObj.devinfo;
                 eventEmitterObj.emit(groupName, groupName, WSNEVENTS[3].event, eventMsgObj);  
-            }
         }
         break;
         default:
             console.log('[Emergancy] Unknow Error Code: '+ code);
     }
        
+}
+
+var procStatusReport = function( topic, eslobj, pMap ) 
+{
+    if( typeof eslobj.Parameter[pMap.uid] == 'undefined' ) return;
+    
+    var devObj = 'undefined';
+    //var type = eslobj.Parameter[pMap.type];    
+    var uid = eslobj.Parameter[pMap.uid];
+    //var status = eslobj.Parameter[pMap.status];
+
+    // switch(type)
+    // {
+    //      case 0x10: // gw
+    //         if( gGwMap.has(uid) == true )      devObj = gGwMap.get(uid);
+    //     break;
+    //     case 0x20: // router
+    //         if( gRouterMap.has(uid) == true )  devObj = gRouterMap.get(uid);
+    //     break;
+    //     case 0x30: // tag
+    //         if( gTagMap.has(uid) == true )     devObj = gTagMap.get(uid);
+    //     break;
+    //     default:
+    //         console.log('[Emergancy] Unknow Device Type!');
+    // }
+    if( gTagMap.has(uid) == true ) 
+    {
+         devObj = gTagMap.get(uid);
+         type = 2;
+    }
+    else if( gRouterMap.has(uid) == true )  
+    {
+        devObj = gRouterMap.get(uid);
+        type = 1;
+    }
+    else if( gGwMap.has(uid) == true )      
+    {
+        devObj = gGwMap.get(uid);
+    }
+
+    if( devObj === 'undefined' ) return;
+
+
+    updateData( devObj, eslobj, pMap , 1 );
 }
 
 /*
@@ -1065,7 +1192,7 @@ var sendAction = function( pMap, paramVals )
     }
 
     // create transaction-id table
-    gActionMap.set(sessionId,eslobj);
+    gActionMap.set(sessionId,paramVals);
 
     // send mqtt message
     msg = JSON.stringify(eslobj);
@@ -1082,13 +1209,13 @@ var sendAction = function( pMap, paramVals )
         setTimeout(function () {
             //console.log('[Timeout] session ID === ' + sessionId );
             if ( gActionMap.has(sessionId) === true){
-            var sessionObj = gActionMap.get(sessionId);
-            if ( typeof sessionObj !== 'undefined' ){                
-                var cbf = paramVals['cb'];
-                cbf(paramVals.res, STATUS.REQUEST_TIMEOUT, '');
-                gActionMap.remove(sessionId);
-                console.log('[Timeout] sessionId.count() = ' + gActionMap.count())
-            }
+            var actObj = gActionMap.get(sessionId);
+                if ( typeof actObj !== 'undefined' ){                
+                    var cbf = paramVals['cb'];
+                    cbf(paramVals.res, STATUS.REQUEST_TIMEOUT, '');
+                    gActionMap.remove(sessionId);
+                    console.log('[Timeout] sessionId.count() = ' + gActionMap.count())
+                }
             }
         } , timeout, sessionId);   
     } 
@@ -1101,21 +1228,11 @@ var getCmd = function( pMap, input )
 {
     var param = {};
 
-    switch(pMap.dev)
-    {
-        case GS_DEVTYPE_ROUTER:
-        {
-            param['router-addr'] = input['devId'];
-        }
-        break;
-        case GS_DEVTYPE_TAG:
-        {
-            param['tag-addr'] = input['devId'];
-        }
-        break;
-        default:
-        break;
-    }
+    if( pMap.dev === GS_DEVTYPE_ROUTER )
+        param['router-addr'] = input['devId'];
+    else if ( pMap.dev === GS_DEVTYPE_TAG )
+        param['tag-addr'] = input['devId'];
+
     console.log('[getCmd] '+JSON.stringify(pMap));
     sendAction( pMap, param );
 }
@@ -1123,6 +1240,7 @@ var getCmd = function( pMap, input )
 
 
 // input : { "devId":"00124b00043a9766", "tx-level": 3 } or { "Info/permit-tag-list":"00124b00043a9766","00124b00043a9776"}
+// This function only for general params set, fw/image has special function
 var setCmd = function( pMap, input )
 {
     var param = {};
@@ -1138,21 +1256,11 @@ var setCmd = function( pMap, input )
         }
     }
 
-    switch(pMap.dev)
-    {
-        case GS_DEVTYPE_ROUTER: 
-        {
-            param['router-addr'] = input['devId'];
-        }
-        break;
-        case GS_DEVTYPE_TAG:
-        {
-            param['tag-addr'] = input['devId'];
-        }
-        break;
-        default:
-        break;
-    }    
+    if( pMap.dev === GS_DEVTYPE_ROUTER )
+        param['router-addr'] = input['devId'];
+    else if ( pMap.dev === GS_DEVTYPE_TAG )
+        param['tag-addr'] = input['devId'];
+    
 
     if( typeof input['res'] !== 'undefined' && typeof input['cb'] !== 'undefined' )
     {
@@ -1223,7 +1331,7 @@ var procImageUpdate = function( pMap, input )
     // basic http info
     param.res = input['res'];
     param.cb = input['cb'];
-    param['timeout'] = 10000; // 10 sec
+    param['timeout'] = 120000; // 120 sec
 
     // cmd parameters
     param['tag-addr'] = input['devId'];
@@ -1419,22 +1527,23 @@ var GS_CMDID = {
     GS_PROTOCOL: [
                     // ============= Report  ==========================================
                     { 
-                      type_id:'1-1', dev: GS_DEVTYPE_GW, name:'gateway-registration', protocol: 'Zigbee', mac:'zd-address', uid: 'wifi-macaddr',
-                      param:[{s:'wifi-macaddr'},{s:'wifi-channel'},{s:'ip'},{s:'port'},{s:'zd-address'},{s:'pan-id',d:'Info/pan-id'},{s:'zd-channel',d:'Info/zd-channel'},{s:'zd-fw-version',d:'Info/zd-fw-version'}], 
+                      type_id:'1-1', dev: GS_DEVTYPE_GW, name:'gateway-registration', protocol: 'Zigbee', mac:'zd-address', uid: 'device-ieeeadr',
+                      param:[{s:'device-ieeeadr'},{s:'ip'},{s:'zd-address'},{s:'pan-id',d:'Info/pan-id'},{s:'zd-channel',d:'Info/zd-channel'},{s:'zd-fw-version',d:'Info/zd-fw-version'}], 
                       fun: procGWReg
                     }, // Tested
 
                     { 
-                      type_id:'1-2', dev: GS_DEVTYPE_ROUTER, name:'router-registration', protocol: 'Zigbee', mac:'zdt-address', uid: 'wifi-macaddr', 
-                      param:[{s:'wifi-macaddr'},{s:'wifi-channel'},{s:'ip'},{s:'port'},{s:'zdt-address'},{s:'zdt-fw-version',d:'Info/zd-fw-version'},
+                      type_id:'1-2', dev: GS_DEVTYPE_ROUTER, name:'router-registration', protocol: 'Zigbee', mac:'zdt-address', uid: 'device-ieeeadr', 
+                      param:[{s:'device-ieeeadr'},{s:'ip'},{s:'zdt-address'},{s:'zdt-fw-version',d:'Info/zd-fw-version'},
                              {s:'zdr-address'},{s:'zdr-fw-version'}], 
                       fun: procRouterReg
                     },    
 
                     {                                                                                                                   
                       type_id:'1-3', dev: GS_DEVTYPE_TAG, name:'tag-registration', protocol: 'Zigbee', mac:'device-ieeeadr', uid: 'device-ieeeadr', parentid: 'parent-ieeeaddr',
-                      param:[{s:'device-ieeeadr'},{s:'tx-level',d:'Net/tx-level'},{s:'image-crc',d:'SenData/image-crc'},{s:'tag-type', d:'SenData/resolution'},
-                      {s:'rssi',d:'Net/rssi'},{s:'channel',d:'Net/channel'},{s:'fw-version',d:'Info/fw-version'},{s:'default-image'}], 
+                      param:[{s:'device-ieeeadr'},{s:'tx-level',d:'Net/tx-level'},{s:'image-crc',d:'SenData/image-crc'},{s:'tag-type', d:'SenData/panel-type'},
+                      {s:'rssi',d:'Net/rssi'},{s:'channel',d:'Net/channel'},{s:'fw-version',d:'Info/fw-version'},{s:'default-image'},{s:'timeout', d:'Info/timeout'},
+                      {s:'data-request-period',d:'Info/data-request-period'},{s:'state-report-period',d:'Info/state-report-period'}], 
                       fun: procTagReg
                     },
 
@@ -1459,7 +1568,13 @@ var GS_CMDID = {
                     { 
                         type_id:'1-7', dev: GS_DEVTYPE_GENERAL, name:'emergancy report', uid: 'device-address', type: 'device-type', code: 'error-code', 
                         fun: procEmergancyReport
-                    },                    
+                    },
+
+                    { 
+                        type_id:'1-8', dev: GS_DEVTYPE_GENERAL, name:'Status-change', uid: 'device-address', type: 'device-type', status: 'Status-channge', 
+                        param:[{s:'Status-channge', d:'Info/stauts'}], 
+                        fun: procStatusReport
+                    },                       
                     // ============= Report  ==========================================
 
 
@@ -1492,7 +1607,7 @@ var GS_CMDID = {
                     }, 
                     { 
                         type_id:'3-260', dev: GS_DEVTYPE_GW, name:'add-permit-tag-list-rsp', uid: '', action_type:'rsp', 
-                        param:[{s:'device-ieeeadr-count'},{s:'device-ieeeadr-list',tr:arrayToString}], 
+                        param:[{s:'device-ieeeadr-count'},{s:'device-ieeeadr-list',d:'Info/permit-tag-list', tr:arrayToString}], 
                         fun: procGWRsp
                     },  
                     
@@ -1503,7 +1618,7 @@ var GS_CMDID = {
                     }, 
                     { 
                         type_id:'3-261', dev: GS_DEVTYPE_GW, name:'remove-permit-tag-list-rsp', uid: '', action_type:'rsp', 
-                        param:[{s:'device-ieeeadr-count'},{s:'device-ieeeadr-list',tr:arrayToString}], 
+                        param:[{s:'device-ieeeadr-count'},{s:'device-ieeeadr-list', d:'Info/permit-tag-list',tr:arrayToString}], 
                         fun: procGWRsp
                     },                      
 
@@ -1517,6 +1632,18 @@ var GS_CMDID = {
                         param:[{s:'device-ieeeadr-index'},{s:'device-ieeeadr-count'},{s:'device-ieeeadr-list',d:'Info/permit-tag-list',tr:arrayToString}], 
                         fun: procGWRsp
                     },    //  <Not Test>
+
+                    { 
+                        type_id:'2-263', dev: GS_DEVTYPE_GW, name:'gateway-zd-setup-channel', uid: '', action_type:'set', uri_path:'Info/channel',
+                        param:[{s:'channel'}], 
+                        fun: setCmd
+                    }, 
+
+                    { 
+                        type_id:'3-263', dev: GS_DEVTYPE_GW, name:'gateway-zd-setup-channel-rsp', uid: '', action_type:'rsp', uri_path:'Info/channel', sync: 1,
+                        param:[{s:'channel', d:'Info/channel'}], 
+                        fun: procGWRsp
+                    },                       
 
                     { 
                         type_id:'2-264', dev: GS_DEVTYPE_GW, name:'gateway-zd-reboot', uid: '', action_type:'set', uri_path:'Info/reboot',
@@ -1536,7 +1663,7 @@ var GS_CMDID = {
                     },   // Tested                
                     { 
                         type_id:'3-265', dev: GS_DEVTYPE_GW, name:'zd-get-router-list-rsp', uid: '', action_type:'rsp',
-                        param:[{s:'device-ieeeadr-index'},{s:'device-ieeeadr-count', d:'Info/device-number'},{s:'device-ieeeadr-list',d:'Info/DeviceList',tr:routerListMACtoAgentId}], 
+                        param:[{s:'device-ieeeadr-count', d:'Info/device-number'},{s:'device-ieeeadr-list',d:'Info/DeviceList',tr:routerListMACtoAgentId}], 
                         fun: procGWRsp
                     },   // Tested
 
@@ -1576,6 +1703,19 @@ var GS_CMDID = {
                         fun: setCmd
                     },  
 
+                    // ----- 0200+4 zd-setup-channel ----------------------------------------------------------------------------------
+                    { 
+                        type_id:'2-516', dev: GS_DEVTYPE_ROUTER, name:'router-zd-setup-channel', uid:'' , action_type:'set', uri_path: 'Info/channel',
+                        param:[{s:'router-addr'},{s:'channel'}], 
+                        fun: setCmd
+                    },   
+                    
+                    { 
+                        type_id:'3-516', dev: GS_DEVTYPE_ROUTER, name:'router-zd-setup-channel-rsp', uid:'router-addr' , action_type:'set', uri_path: 'Info/channel', sync: 1,
+                        param:[{s:'router-addr'},{s:'channel',d:'Info/channel'}], 
+                        fun: procRouterRsp
+                    },                      
+
                     
                     // ----- 0200+5 router-zd-reboot ----------------------------------------------------------------------------------
                     { 
@@ -1584,9 +1724,9 @@ var GS_CMDID = {
                         fun: setCmd
                     },  // Not
                     { 
-                        type_id:'2-517', dev: GS_DEVTYPE_ROUTER, name:'router-zd-reboot-rsp', uid:'' , action_type:'rsp',
+                        type_id:'3-517', dev: GS_DEVTYPE_ROUTER, name:'router-zd-reboot-rsp', uid:'router-addr' , action_type:'rsp', 
                         param:[{s:'router-addr'}], 
-                        fun: setCmd
+                        fun: procRouterRsp
                     },  // Not
 
                     // ---- 0200+6 get-tag-list ---------------------------------------------------------------------------------------
@@ -1609,7 +1749,7 @@ var GS_CMDID = {
                         fun: setCmd
                     },  
                     { 
-                        type_id:'3-519', dev: GS_DEVTYPE_ROUTER, name:'zd-fw-update-t-rsp', uid: 'router-addr', action_type:'rsp',
+                        type_id:'3-519', dev: GS_DEVTYPE_ROUTER, name:'zd-fw-update-t-rsp', uid: 'router-addr', action_type:'rsp', sync: 1,
                         param:[{s:'router-addr'}], 
                         fun: procRouterRsp
                     },  
@@ -1627,47 +1767,48 @@ var GS_CMDID = {
 
                     // ---- 0200+10 set-zd-tx-power-r ---------------------------------------------------------------------------------------
                     { 
-                        type_id:'2-528', dev: GS_DEVTYPE_ROUTER, name:'set-zd-tx-power-r', uid: '', action_type:'set', uri_path: 'Info/tx-level-r',
+                        type_id:'2-522', dev: GS_DEVTYPE_ROUTER, name:'set-zd-tx-power-r', uid: '', action_type:'set', uri_path: 'Info/tx-level-r',
                         param:[{s:'router-addr'},{s:'tx-level'}], 
-                        fun: setCmd
+                        fun: setCmd // reply
                     }, 
                     { 
-                        type_id:'3-528', dev: GS_DEVTYPE_ROUTER, name:'set-zd-tx-power-r-rsp', uid: 'router-addr', action_type:'rsp',
+                        type_id:'3-522', dev: GS_DEVTYPE_ROUTER, name:'set-zd-tx-power-r-rsp', uid: 'router-addr', action_type:'rsp', sync: 1,
                         param:[{s:'router-addr'},{s:'tx-level',d:'Info/tx-level-r'}], 
                         fun: procRouterRsp
                     },     
 
                     // -----0200+11 get-zd-tx-power-r -------------------------------------------------------------------------------------                    
                     { 
-                        type_id:'2-529', dev: GS_DEVTYPE_ROUTER, name:'get-zd-tx-power-r', uid: '', action_type:'get',
+                        type_id:'2-523', dev: GS_DEVTYPE_ROUTER, name:'get-zd-tx-power-r', uid: '', action_type:'get',
                         param:[{s:'router-addr'}], 
                         fun: getCmd
                     }, // Tested             
                     { 
-                        type_id:'3-529', dev: GS_DEVTYPE_ROUTER, name:'get-zd-tx-power-r-rsp', uid: 'router-addr', action_type:'rsp',
+                        type_id:'3-523', dev: GS_DEVTYPE_ROUTER, name:'get-zd-tx-power-r-rsp', uid: 'router-addr', action_type:'rsp',
                         param:[{s:'router-addr'},{s:'tx-level',d:'Info/tx-level-r'}], 
                         fun: procRouterRsp
                     }, // Tested   
 
                     // -----0200+12 set-zd-tx-power-t -------------------------------------------------------------------------------------
                     { 
-                        type_id:'2-530', dev: GS_DEVTYPE_ROUTER, name:'set-zd-tx-power-t', uid: '', action_type:'set', uri_path: 'Info/tx-level-t',
+                        type_id:'2-524', dev: GS_DEVTYPE_ROUTER, name:'set-zd-tx-power-t', uid: '', action_type:'set', uri_path: 'Info/tx-level-t',
                         param:[{s:'router-addr'},{s:'tx-level'}], 
-                        fun: setCmd
+                        fun: setCmd  // reply
                     }, 
                     { 
-                        type_id:'3-530', dev: GS_DEVTYPE_ROUTER, name:'set-zd-tx-power-t-rsp', uid: '', action_type:'rsp',
+                        type_id:'3-524', dev: GS_DEVTYPE_ROUTER, name:'set-zd-tx-power-t-rsp', uid: 'router-addr', action_type:'rsp', sync:1, 
                         param:[{s:'router-addr'},{s:'tx-level',d:'Info/tx-level-t'}], 
+                        fun: procRouterRsp
                     }, 
                     
                     // -----0200+13 get-zd-tx-power-t -------------------------------------------------------------------------------------                    
                     { 
-                        type_id:'2-531', dev: GS_DEVTYPE_ROUTER, name:'get-zd-tx-power-t', uid: '', action_type:'get',
+                        type_id:'2-525', dev: GS_DEVTYPE_ROUTER, name:'get-zd-tx-power-t', uid: '', action_type:'get',
                         param:[{s:'router-addr'}], 
                         fun: getCmd
                     }, // Tested             
                     { 
-                        type_id:'3-531', dev: GS_DEVTYPE_ROUTER, name:'get-zd-tx-power-t-rsp', uid: 'router-addr', action_type:'rsp',
+                        type_id:'3-525', dev: GS_DEVTYPE_ROUTER, name:'get-zd-tx-power-t-rsp', uid: 'router-addr', action_type:'rsp',
                         param:[{s:'router-addr'},{s:'tx-level',d:'Info/tx-level-t'}], 
                         fun: procRouterRsp
                     }, // Tested                     
@@ -1676,28 +1817,23 @@ var GS_CMDID = {
 
                     //================================= < Tag >  =======================================                    
 
-
-                    // ----- get-update-period -------------------------------------------------------------------------------------
+                    // ----- 0x300+2 tag-re-register -------------------------------------------------------------------------------------
                     {   
-                        type_id:'2-770', dev: GS_DEVTYPE_TAG, name:'get-update-period', uid: '', action_type:'get',
+                        type_id:'2-770', dev: GS_DEVTYPE_TAG, name:'tag-re-register', uid: '', action_type:'set', uri_path:'',
                         param:[{s:'tag-addr'}], 
-                        fun: getCmd
-                    }, // Not             
-                    {   
-                        type_id:'3-770', dev: GS_DEVTYPE_TAG, name:'get-update-period', uid: '', action_type:'rsp',
-                        param:[{s:'tag-addr'},{s:'data-request-period',d:'Info/data-request-period'},{s:'state-report-period',d:'Info/state-request-period'}], 
-                        fun: procTagRsp
-                    }, // Not     
+                        fun: setCmd
+                    },  
                     
-                    // ----- set-timeout-setting -------------------------------------------------------------------------------------
+                    // -----  0x300+3 set-timeout-setting  (for disconnect) -------------------------------------------------------------------------------------
                     {   
                         type_id:'2-771', dev: GS_DEVTYPE_TAG, name:'set-timeout-setting', uid: '', action_type:'set', uri_path: 'Info/timeout',
                         param:[{s:'tag-addr'},{s:'timeout'}], 
                         fun: setCmd
-                    }, // Not             
+                    }, // Reply  
+
                     {   
-                        type_id:'3-771', dev: GS_DEVTYPE_TAG, name:'set-timeout-setting-rsp', uid: '', action_type:'rsp',
-                        param:[{s:'tag-addr'}], // should update timeout 
+                        type_id:'3-771', dev: GS_DEVTYPE_TAG, name:'set-timeout-setting-rsp', uid: 'tag-addr', action_type:'rsp', sync:1,
+                        param:[{s:'tag-addr'},{s:'timeout', d:'Info/timeout'}], // should update timeout 
                         fun: procTagRsp
                     }, // Not      
 
@@ -1708,19 +1844,24 @@ var GS_CMDID = {
                         fun: getCmd
                     }, // Not             
                     {   
-                        type_id:'3-772', dev: GS_DEVTYPE_TAG, name:'get-timeout-setting-rsp', uid: '', action_type:'rsp',
+                        type_id:'3-772', dev: GS_DEVTYPE_TAG, name:'get-timeout-setting-rsp', uid: 'tag-addr', action_type:'rsp',
                         param:[{s:'tag-addr'},{s:'timeout',d:'Info/timeout'}],
                         fun: procTagRsp
                     }, // Not     
 
                     // 773 led-control
                     
-                    // 2-774 set-command-timeout-setting
+                    // ------ 0x300+6 set-command-timeout-setting xxxxxxxxxxxxxxxxxxxx not use
                     {   
                         type_id:'2-774', dev: GS_DEVTYPE_TAG, name:'set-command-timeout-setting', uid: '', action_type:'set', uri_path: '',
                         param:[{s:'tag-addr'},{s:'cmd-id'},{s:'timeout'}], 
                         fun: setCmd
-                    }, // Not                       
+                    }, // Reply   
+                    {   
+                        type_id:'3-774', dev: GS_DEVTYPE_TAG, name:'set-command-timeout-setting-rsp', uid: 'tag-addr', action_type:'rsp', uri_path: '',
+                        param:[{s:'tag-addr'},{s:'cmd-id'},{s:'timeout'}], 
+                        fun: setCmd
+                    }, // Reply                                         
 
                     // 4-774 broadcast-set-command-timeout-setting
                     {   
@@ -1730,14 +1871,14 @@ var GS_CMDID = {
                     }, // Not     
 
 
-                    // ----- image-update ------------------------------------------------------------------------------------
+                    // -----0x300+7 image-update ------------------------------------------------------------------------------------
                     {   
                         type_id:'2-775', dev: GS_DEVTYPE_TAG, name:'image-update', uid: '', action_type:'set', uri_path: 'Action/image-update', extra: 1,
                         param:[{s:'tag-addr'},{s:'image-name'},{s:'image-crc'}], 
                         fun: procImageUpdate
                     }, // OK             
                     {   
-                        type_id:'3-775', dev: GS_DEVTYPE_TAG, name:'image-update-rsp', uid: '', action_type:'rsp',
+                        type_id:'3-775', dev: GS_DEVTYPE_TAG, name:'image-update-rsp', uid: 'tag-addr', action_type:'rsp',
                         param:[{s:'tag-addr'},{s:'image-name'},{s:'image-crc'}],
                         fun: procTagRsp
                     }, // OK   
@@ -1753,17 +1894,17 @@ var GS_CMDID = {
                     // ----- 300 + 9 refresh-image ------------------------------------------------------------------------------------                    
                     {   
                         type_id:'2-777', dev: GS_DEVTYPE_TAG, name:'refresh-image', uid: '', action_type:'set', uri_path:'Action/refresh-image',
-                        param:[{s:'tag-addr'},{s:'image-crc'},{s:'timedelay'}], 
+                        param:[{s:'tag-addr'},{s:'timedelay',v:0}], 
                         fun: setCmd
                     }, // Not             
                     {   
-                        type_id:'3-777', dev: GS_DEVTYPE_TAG, name:'refresh-image-rsp', uid: '', action_type:'rsp',
-                        param:[{s:'tag-addr'},{s:'image-crc'},{s:'total-image-crc'}],
+                        type_id:'3-777', dev: GS_DEVTYPE_TAG, name:'refresh-image-rsp', uid: 'tag-addr', action_type:'rsp',
+                        param:[{s:'tag-addr'}],
                         fun: procTagRsp
                     }, // Not  
                     {   
                         type_id:'4-777', dev: GS_DEVTYPE_TAG, name:'broadcast-refresh-image', uid: '', action_type:'set', uri_path:'Action/brpadcast-refresh-image',
-                        param:[{s:'image-crc'},{s:'timedelay'}],  // ??? GW fun multi-crc
+                        param:[{s:'image-crc'},{s:'timedelay',v:0}],  // ??? GW fun multi-crc
                         fun: setCmd
                     }, // Not                      
                     
@@ -1775,31 +1916,31 @@ var GS_CMDID = {
                         fun: setCmd
                     }, // Not             
                     {   
-                        type_id:'3-778', dev: GS_DEVTYPE_TAG, name:'tag-zd-fw-update-rsp', uid: '', action_type:'rsp',  // ??? NO RSP
+                        type_id:'3-778', dev: GS_DEVTYPE_TAG, name:'tag-zd-fw-update-rsp', uid: 'tag-addr', action_type:'rsp',  // ??? NO RSP
                         param:[{s:'tag-addr'}],
                         fun: procTagRsp
                     }, // Not                      
 
-                    // ----- zd-reboot ------------------------------------------------------------------------------------
+                    // ----- 0x300+11 zd-reboot ------------------------------------------------------------------------------------
                     {   
                         type_id:'2-779', dev: GS_DEVTYPE_TAG, name:'zd-reboot', uid: '', action_type:'set', uri_path:'Action/reboot',
                         param:[{s:'tag-addr'}], 
                         fun: setCmd
-                    }, // Not             
+                    }, // Reply             
                     {   
-                        type_id:'3-779', dev: GS_DEVTYPE_TAG, name:'zd-reboot-rsp', uid: '', action_type:'rsp',  // ??? NO RSP
+                        type_id:'3-779', dev: GS_DEVTYPE_TAG, name:'zd-reboot-rsp', uid: 'tag-addr', action_type:'rsp', 
                         param:[{s:'tag-addr'}],
                         fun: procTagRsp
                     }, // Not       
                     
-                    // ----- zd-reset-to-default ------------------------------------------------------------------------------------
+                    // ----- 0x300+12 zd-reset-to-default ------------------------------------------------------------------------------------
                     {   
-                        type_id:'2-780', dev: GS_DEVTYPE_TAG, name:'zd-reset-to-default', uid: '', action_type:'set', uri_path:'Action/reset-to-default',
+                        type_id:'2-780', dev: GS_DEVTYPE_TAG, name:'zd-reset-to-default', uid: 'tag-addr', action_type:'set', uri_path:'Action/reset-to-default',
                         param:[{s:'tag-addr'}], 
                         fun: setCmd
-                    }, // Not             
+                    }, // Reply             
                     {   
-                        type_id:'3-780', dev: GS_DEVTYPE_TAG, name:'zd-reset-to-default', uid: '', action_type:'rsp', // ??? NO RSP
+                        type_id:'3-780', dev: GS_DEVTYPE_TAG, name:'zd-reset-to-default', uid: 'tag-addr', action_type:'rsp', // ??? NO RSP
                         param:[{s:'tag-addr'}],
                         fun: procTagRsp 
                     }, // Not               
@@ -1807,17 +1948,19 @@ var GS_CMDID = {
   
                     // ----- x0300+16 set-state-report-period -------------------------------------------------------------------------------------
                     {   
-                        type_id:'2-781', dev: GS_DEVTYPE_TAG, name:'set-state-report-period', uid: '', action_type:'set', uri_path:'Info/state-report-period',
-                        param:[{s:'tag-addr'},{s:'state-report-period', d:'state-report-period'}], 
+                        type_id:'2-781', dev: GS_DEVTYPE_TAG, name:'set-state-report-period', uid: 'tag-addr', action_type:'set', uri_path:'Info/state-report-period',
+                        param:[{s:'tag-addr'},{s:'state-report-period', d:'Info/state-report-period'}], 
                         fun: setCmd
-                    },                 
+                    }, // Reply                
                     {   
-                        type_id:'3-781', dev: GS_DEVTYPE_TAG, name:'set-state-report-period-rsp', uid: '', action_type:'rsp',
-                        param:[{s:'tag-addr'},{s:'state-report-period',d:'Info/state-report-period'}],           // ??? NO RSP
+                        type_id:'3-781', dev: GS_DEVTYPE_TAG, name:'set-state-report-period-rsp', uid: 'tag-addr', action_type:'rsp', sync: 1,
+                        param:[{s:'tag-addr'},{s:'state-report-period',d:'Info/state-report-period'}],          
                         fun: procTagRsp
-                    },  
+                    },     
+                    
+                    
                     {   
-                        type_id:'4-781', dev: GS_DEVTYPE_TAG, name:'broadcast-set-state-report-period-rsp', uid: '', action_type:'set', uri_path:'Info/state-report-period',
+                        type_id:'4-781', dev: GS_DEVTYPE_TAG, name:'broadcast-set-state-report-period-rsp', uid: 'router-addr', action_type:'set', uri_path:'',
                         param:[{s:'state-report-period',d:'Info/state-report-period'}], // GW fun
                         fun: procTagRsp
                     },                      
@@ -1827,10 +1970,10 @@ var GS_CMDID = {
                         type_id:'2-782', dev: GS_DEVTYPE_TAG, name:'set-data-request-period', uid: '', action_type:'set', uri_path:'Info/data-request-period',
                         param:[{s:'tag-addr'},{s:'data-request-period',d:'data-request-period'}], 
                         fun: setCmd
-                    },                 
+                    }, // Reply                
                     {   
-                        type_id:'3-782', dev: GS_DEVTYPE_TAG, name:'set-data-request-period-rsp', uid: '', action_type:'rsp',
-                        param:[{s:'tag-addr'},{s:'data-request-period',d:'Info/data-request-period'}],                       // ??? NO RSP
+                        type_id:'3-782', dev: GS_DEVTYPE_TAG, name:'set-data-request-period-rsp', uid: 'tag-addr', action_type:'rsp', sync: 1,
+                        param:[{s:'tag-addr'},{s:'data-request-period',d:'Info/data-request-period'}],                     
                         fun: procTagRsp                
                     },
                     {   
@@ -1839,11 +1982,7 @@ var GS_CMDID = {
                         fun: setCmd
                     },                      
 
-                    {   
-                        type_id:'2-783', dev: GS_DEVTYPE_TAG, name:'tag-re-register', uid: '', action_type:'set', uri_path:'',
-                        param:[{s:'tag-addr'}], 
-                        fun: setCmd
-                    },                  
+                 
                     
                     
                     // ================================= < ESL >  =======================================    
@@ -2293,7 +2432,7 @@ var wsnget = function( uri, inParam, outData )
 
 
 // type: URI_TYPE.CONNECTIVITY ; URI_TYPE.SENSORHUB
-// uri: /SenHub/00124b00043a9766/XXX
+// uri: /SenHub/00124b00043a9766/SenHub/Action/reboot
 // data: v, bv, sv
 var procSetRestful = function( type, uri, data, res, cb )  // res: http response handler, data cb: callback function
 {
@@ -2301,7 +2440,8 @@ var procSetRestful = function( type, uri, data, res, cb )  // res: http response
     var uriList = uri.split('/');
     var agentID = uriList[1];
     var params = {};    
-    // key = Info/reboot
+
+    // key = Action/reboot
     var key = uriList[uriList.length-2] +'/' + uriList[uriList.length-1];
 
     // tx-level
@@ -2317,13 +2457,14 @@ var procSetRestful = function( type, uri, data, res, cb )  // res: http response
         params.cb  = cb;       
         params.res = res;
 
-        if( typeof actionMap.extra !== 'undefined' )
+        if( typeof actionMap.extra !== 'undefined' ) // for image / fw update
         {
-            params.data = data;
+            params.data = data; 
             console.log('[special process] ' + actionMap.name );
         }
         else
         {      
+            console.log('set data ' + data);
             value = getValue( data );
 
             if( typeof value !== 'undefined' && actionMap.param.length > 0 ) // tr
@@ -2332,11 +2473,14 @@ var procSetRestful = function( type, uri, data, res, cb )  // res: http response
                 {
                     var s  = actionMap.param[i]['s'];
                     var tr = actionMap.param[i]['tr'];
+                    var defvalue = actionMap.param[i]['v'];
                     if( s !== 'router-addr' &&  s !== 'tag-addr' )
                     {
-                        if( typeof tr == 'undefined' ) 
+                        if( typeof defvalue != 'undefined') // refresh-image- timedelay (0)
+                            params[s] = defvalue;
+                        else if( typeof tr == 'undefined' ) 
                             params[s] = value;
-                        else
+                        else 
                             params[s] = tr(value);                    
                     }
                 }
