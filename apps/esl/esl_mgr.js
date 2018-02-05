@@ -68,7 +68,7 @@ var HashMap = require('hashmap').HashMap;
 
 // *********** Define ************************
 
-const FTP_FOLDER_PATH = '/home/eric/Work/ESL/dev/APIGateway/'
+const FTP_FOLDER_PATH = '/root/image/'
 
 const URI_TYPE = { 
     CONNECTIVITY: 1,  // WSNManage/Connectivity
@@ -84,6 +84,7 @@ const GS_ESL_MODE =
     LV_2: 2, // 2 layer: GW-Router / Tag
 };
 
+ESL_GATEWAY_NAME = "ESL-GW"
 ESL_ROUTER_NAME = "ESL-Router"
 ESL_TAG_NAME = "ESL-Tag"
 
@@ -183,8 +184,8 @@ const ESL_ROUTER_INFO =
     Info: {
             e:[ {n:'DeviceList', sv:'', asm:'r'},     
                 {n:'device-number', v:0, asm:'r'},            
-                {n:'tx-level-t',v:5,asm:'rw', min:1, max:10}, // EVT not support
-                {n:'tx-level-r',v:5,asm:'rw', min:1, max:10},
+                {n:'tx-level-t',v:12,asm:'rw', min:0, max:22}, // EVT not support
+                {n:'tx-level-r',v:12,asm:'rw', min:0, max:22},
                 {n:'zd-fw-version', v:0, asm:'r'},
                 {n:'status', v:DEV_STATUS.IDLE, asm:'r'}, 
                 {n:'reboot', bv:0, asm:'rw'}],
@@ -199,8 +200,8 @@ const ESL_ROUTER_GW_INFO =
             e:[ {n:'DeviceList', sv:'', asm:'r'},
                 {n:'device-number', v:0, asm:'r'},    
                 {n:'permit-tag-list',sv:'',asm:'rw'},      // Router-GW  
-                {n:'tx-level-t',v:5,asm:'rw', min:1, max:10},
-                {n:'tx-level-r',v:5,asm:'rw', min:1, max:10},
+                {n:'tx-level-t',v:12,asm:'rw', min:0, max:22},
+                {n:'tx-level-r',v:12,asm:'rw', min:0, max:22},
                 {n:'zd-fw-version', v:0, asm:'r'},
                 {n:'status', v:DEV_STATUS.IDLE, asm:'r'},                
                 {n:'reboot', bv:0, asm:'rw'}],
@@ -218,9 +219,9 @@ const ESL_TAG_INFO =
     bn: 'SenData'    
     },
     Info: {
-        e:[ {n:"data-request-period",v:60,asm:"rw",min:30, max:3600, u:"sec"},     // ( sec ) The tag asks for the command's period
-            {n:"state-report-period",v:3600, asm:"rw",min:60, max:86400, u:'sec'}, // ( sec ) The tag report period
-            {n:"timeout",v:3,asm:"rw",min:1, max:3, u:'count'},                    // count  The tag rejoin count threshold to monitor how many times data-request without response
+        e:[ {n:"data-request-period",v:20000,asm:"rw",min:1000, max:60000, u:"msec"},     // ( sec ) The tag asks for the command's period
+            {n:"state-report-period",v:60000, asm:"rw",min:15000, max:3600000, u:'msec'}, // ( sec ) The tag report period
+            {n:"timeout",v:6,asm:"rw",min:4, max:8, u:'count'},                    // count  The tag rejoin count threshold to monitor how many times data-request without response
             {n:"battery",v:70,asm:"r",min:0, max:100, u:"%"},                      // battery ratio 0 ~ 100 %
             {n:'status', v:DEV_STATUS.IDLE, asm:'r'},                     
             {n:"fw-version",sv:'',asm:"r"}
@@ -343,7 +344,9 @@ var assignValue = function (des, value, key)
 
 var getValue = function( src )
 {
-    var jsrc = JSON.parse( src );
+    //message = src.toString();
+    //message = message.replace(/[\u0000-\u0019]+/g,""); // eric add to remove not viewable syntax 
+    var jsrc = JSON.parse( JSON.stringify(src) );
 
     var value = 'undefined';
 
@@ -1527,13 +1530,13 @@ var GS_CMDID = {
     GS_PROTOCOL: [
                     // ============= Report  ==========================================
                     { 
-                      type_id:'1-1', dev: GS_DEVTYPE_GW, name:'gateway-registration', protocol: 'Zigbee', mac:'zd-address', uid: 'device-ieeeadr',
-                      param:[{s:'device-ieeeadr'},{s:'ip'},{s:'zd-address'},{s:'pan-id',d:'Info/pan-id'},{s:'zd-channel',d:'Info/zd-channel'},{s:'zd-fw-version',d:'Info/zd-fw-version'}], 
+                      type_id:'1-1', dev: GS_DEVTYPE_GW, name:'gateway-registration', protocol: 'Zigbee', mac:'zdr-address', uid: 'device-ieeeadr',
+                      param:[{s:'device-ieeeadr'},{s:'ip'},{s:'zdr-address'},{s:'pan-id',d:'Info/pan-id'},{s:'zd-channel',d:'Info/zd-channel'},{s:'zd-fw-version',d:'Info/zd-fw-version'}], 
                       fun: procGWReg
                     }, // Tested
 
                     { 
-                      type_id:'1-2', dev: GS_DEVTYPE_ROUTER, name:'router-registration', protocol: 'Zigbee', mac:'zdt-address', uid: 'device-ieeeadr', 
+                      type_id:'1-2', dev: GS_DEVTYPE_ROUTER, name:'router-registration', protocol: 'Zigbee', mac:'zdr-address', uid: 'device-ieeeadr', 
                       param:[{s:'device-ieeeadr'},{s:'ip'},{s:'zdt-address'},{s:'zdt-fw-version',d:'Info/zd-fw-version'},
                              {s:'zdr-address'},{s:'zdr-fw-version'}], 
                       fun: procRouterReg
@@ -1589,7 +1592,7 @@ var GS_CMDID = {
                     }, 
 
                     { 
-                        type_id:'2-259', dev: GS_DEVTYPE_GW, name:'zd-setup-securekey', uid: '', action_type:'set', uri_path: 'Info/zd-securekey',
+                        type_id:'2-259', dev: GS_DEVTYPE_GW, name:'zd-setup-securekey', uid: '', action_type:'set', uri_path: 'ESL-GW/Info/zd-securekey',
                         param:[{s:'secure-key'}], 
                         fun: setCmd
                     }, 
@@ -1601,7 +1604,7 @@ var GS_CMDID = {
                     },                    
 
                     { 
-                        type_id:'2-260', dev: GS_DEVTYPE_GW, name:'add-permit-tag-list', uid: '', action_type:'set', uri_path: 'Info/add-permit-tag-list',
+                        type_id:'2-260', dev: GS_DEVTYPE_GW, name:'add-permit-tag-list', uid: '', action_type:'set', uri_path: 'ESL-GW/Info/add-permit-tag-list',
                         param:[{s:'device-ieeeadr-list',tr:stringToArray}], 
                         fun: setCmd
                     }, 
@@ -1612,7 +1615,7 @@ var GS_CMDID = {
                     },  
                     
                     { 
-                        type_id:'2-261', dev: GS_DEVTYPE_GW, name:'remove-permit-tag-list', uid: '', action_type:'set', uri_path: 'Info/remove-permit-tag-list',
+                        type_id:'2-261', dev: GS_DEVTYPE_GW, name:'remove-permit-tag-list', uid: '', action_type:'set', uri_path: 'ESL-GW/Info/remove-permit-tag-list',
                         param:[{s:'device-ieeeadr-list',tr:stringToArray}], 
                         fun: setCmd
                     }, 
@@ -1634,19 +1637,19 @@ var GS_CMDID = {
                     },    //  <Not Test>
 
                     { 
-                        type_id:'2-263', dev: GS_DEVTYPE_GW, name:'gateway-zd-setup-channel', uid: '', action_type:'set', uri_path:'Info/channel',
+                        type_id:'2-263', dev: GS_DEVTYPE_GW, name:'gateway-zd-setup-channel', uid: '', action_type:'set', uri_path:'ESL-GW/Info/channel',
                         param:[{s:'channel'}], 
                         fun: setCmd
                     }, 
 
                     { 
-                        type_id:'3-263', dev: GS_DEVTYPE_GW, name:'gateway-zd-setup-channel-rsp', uid: '', action_type:'rsp', uri_path:'Info/channel', sync: 1,
+                        type_id:'3-263', dev: GS_DEVTYPE_GW, name:'gateway-zd-setup-channel-rsp', uid: '', action_type:'rsp', uri_path:'ESL-GW/Info/channel', sync: 1,
                         param:[{s:'channel', d:'Info/channel'}], 
                         fun: procGWRsp
                     },                       
 
                     { 
-                        type_id:'2-264', dev: GS_DEVTYPE_GW, name:'gateway-zd-reboot', uid: '', action_type:'set', uri_path:'Info/reboot',
+                        type_id:'2-264', dev: GS_DEVTYPE_GW, name:'gateway-zd-reboot', uid: '', action_type:'set', uri_path:'ESL-GW/Info/reboot',
                         param:[], 
                         fun: setCmd
                     },   // Tested
@@ -1681,7 +1684,7 @@ var GS_CMDID = {
 
 
                     { 
-                        type_id:'2-274', dev: GS_DEVTYPE_GW, name:'replace-permit-tag-list', uid: '', action_type:'set', uri_path: 'Info/permit-tag-list',
+                        type_id:'2-274', dev: GS_DEVTYPE_GW, name:'replace-permit-tag-list', uid: '', action_type:'set', uri_path: 'ESL-GW/Info/permit-tag-list',
                         param:[{s:'device-ieeeadr-list',tr:stringToArray}], 
                         fun: setCmd
                     }, 
@@ -1705,13 +1708,13 @@ var GS_CMDID = {
 
                     // ----- 0200+4 zd-setup-channel ----------------------------------------------------------------------------------
                     { 
-                        type_id:'2-516', dev: GS_DEVTYPE_ROUTER, name:'router-zd-setup-channel', uid:'' , action_type:'set', uri_path: 'Info/channel',
+                        type_id:'2-516', dev: GS_DEVTYPE_ROUTER, name:'router-zd-setup-channel', uid:'' , action_type:'set', uri_path: 'ESL-Router/Info/channel',
                         param:[{s:'router-addr'},{s:'channel'}], 
                         fun: setCmd
                     },   
                     
                     { 
-                        type_id:'3-516', dev: GS_DEVTYPE_ROUTER, name:'router-zd-setup-channel-rsp', uid:'router-addr' , action_type:'set', uri_path: 'Info/channel', sync: 1,
+                        type_id:'3-516', dev: GS_DEVTYPE_ROUTER, name:'router-zd-setup-channel-rsp', uid:'router-addr' , action_type:'rsp', sync: 1,
                         param:[{s:'router-addr'},{s:'channel',d:'Info/channel'}], 
                         fun: procRouterRsp
                     },                      
@@ -1719,7 +1722,7 @@ var GS_CMDID = {
                     
                     // ----- 0200+5 router-zd-reboot ----------------------------------------------------------------------------------
                     { 
-                        type_id:'2-517', dev: GS_DEVTYPE_ROUTER, name:'router-zd-reboot', uid:'' , action_type:'set', uri_path: 'Info/reboot',
+                        type_id:'2-517', dev: GS_DEVTYPE_ROUTER, name:'router-zd-reboot', uid:'' , action_type:'set', uri_path: 'ESL-Router/Info/reboot',
                         param:[{s:'router-addr'}], 
                         fun: setCmd
                     },  // Not
@@ -1767,7 +1770,7 @@ var GS_CMDID = {
 
                     // ---- 0200+10 set-zd-tx-power-r ---------------------------------------------------------------------------------------
                     { 
-                        type_id:'2-522', dev: GS_DEVTYPE_ROUTER, name:'set-zd-tx-power-r', uid: '', action_type:'set', uri_path: 'Info/tx-level-r',
+                        type_id:'2-522', dev: GS_DEVTYPE_ROUTER, name:'set-zd-tx-power-r', uid: '', action_type:'set', uri_path: 'ESL-Router/Info/tx-level-r',
                         param:[{s:'router-addr'},{s:'tx-level'}], 
                         fun: setCmd // reply
                     }, 
@@ -1791,7 +1794,7 @@ var GS_CMDID = {
 
                     // -----0200+12 set-zd-tx-power-t -------------------------------------------------------------------------------------
                     { 
-                        type_id:'2-524', dev: GS_DEVTYPE_ROUTER, name:'set-zd-tx-power-t', uid: '', action_type:'set', uri_path: 'Info/tx-level-t',
+                        type_id:'2-524', dev: GS_DEVTYPE_ROUTER, name:'set-zd-tx-power-t', uid: '', action_type:'set', uri_path: 'ESL-Router/Info/tx-level-t',
                         param:[{s:'router-addr'},{s:'tx-level'}], 
                         fun: setCmd  // reply
                     }, 
@@ -1826,7 +1829,7 @@ var GS_CMDID = {
                     
                     // -----  0x300+3 set-timeout-setting  (for disconnect) -------------------------------------------------------------------------------------
                     {   
-                        type_id:'2-771', dev: GS_DEVTYPE_TAG, name:'set-timeout-setting', uid: '', action_type:'set', uri_path: 'Info/timeout',
+                        type_id:'2-771', dev: GS_DEVTYPE_TAG, name:'set-timeout-setting', uid: '', action_type:'set', uri_path: 'ESL-Tag/Info/timeout',
                         param:[{s:'tag-addr'},{s:'timeout'}], 
                         fun: setCmd
                     }, // Reply  
@@ -1851,7 +1854,7 @@ var GS_CMDID = {
 
                     // 773 led-control
                     
-                    // ------ 0x300+6 set-command-timeout-setting xxxxxxxxxxxxxxxxxxxx not use
+                    // ------ 0x300+6 set-command-timeout-setting xxxxxxxxxxxxxxxxxxxx NOT use
                     {   
                         type_id:'2-774', dev: GS_DEVTYPE_TAG, name:'set-command-timeout-setting', uid: '', action_type:'set', uri_path: '',
                         param:[{s:'tag-addr'},{s:'cmd-id'},{s:'timeout'}], 
@@ -1873,7 +1876,7 @@ var GS_CMDID = {
 
                     // -----0x300+7 image-update ------------------------------------------------------------------------------------
                     {   
-                        type_id:'2-775', dev: GS_DEVTYPE_TAG, name:'image-update', uid: '', action_type:'set', uri_path: 'Action/image-update', extra: 1,
+                        type_id:'2-775', dev: GS_DEVTYPE_TAG, name:'image-update', uid: '', action_type:'set', uri_path: 'ESL-Tag/Action/image-update', extra: 1,
                         param:[{s:'tag-addr'},{s:'image-name'},{s:'image-crc'}], 
                         fun: procImageUpdate
                     }, // OK             
@@ -1893,7 +1896,7 @@ var GS_CMDID = {
                     
                     // ----- 300 + 9 refresh-image ------------------------------------------------------------------------------------                    
                     {   
-                        type_id:'2-777', dev: GS_DEVTYPE_TAG, name:'refresh-image', uid: '', action_type:'set', uri_path:'Action/refresh-image',
+                        type_id:'2-777', dev: GS_DEVTYPE_TAG, name:'refresh-image', uid: '', action_type:'set', uri_path:'ESL-Tag/Action/refresh-image',
                         param:[{s:'tag-addr'},{s:'timedelay',v:0}], 
                         fun: setCmd
                     }, // Not             
@@ -1903,7 +1906,7 @@ var GS_CMDID = {
                         fun: procTagRsp
                     }, // Not  
                     {   
-                        type_id:'4-777', dev: GS_DEVTYPE_TAG, name:'broadcast-refresh-image', uid: '', action_type:'set', uri_path:'Action/brpadcast-refresh-image',
+                        type_id:'4-777', dev: GS_DEVTYPE_TAG, name:'broadcast-refresh-image', uid: '', action_type:'set', uri_path:'ESL-Tag/Action/broadcast-refresh-image',
                         param:[{s:'image-crc'},{s:'timedelay',v:0}],  // ??? GW fun multi-crc
                         fun: setCmd
                     }, // Not                      
@@ -1923,7 +1926,7 @@ var GS_CMDID = {
 
                     // ----- 0x300+11 zd-reboot ------------------------------------------------------------------------------------
                     {   
-                        type_id:'2-779', dev: GS_DEVTYPE_TAG, name:'zd-reboot', uid: '', action_type:'set', uri_path:'Action/reboot',
+                        type_id:'2-779', dev: GS_DEVTYPE_TAG, name:'zd-reboot', uid: '', action_type:'set', uri_path:'ESL-Tag/Action/reboot',
                         param:[{s:'tag-addr'}], 
                         fun: setCmd
                     }, // Reply             
@@ -1935,7 +1938,7 @@ var GS_CMDID = {
                     
                     // ----- 0x300+12 zd-reset-to-default ------------------------------------------------------------------------------------
                     {   
-                        type_id:'2-780', dev: GS_DEVTYPE_TAG, name:'zd-reset-to-default', uid: 'tag-addr', action_type:'set', uri_path:'Action/reset-to-default',
+                        type_id:'2-780', dev: GS_DEVTYPE_TAG, name:'zd-reset-to-default', uid: 'tag-addr', action_type:'set', uri_path:'ESL-Tag/Action/reset-to-default',
                         param:[{s:'tag-addr'}], 
                         fun: setCmd
                     }, // Reply             
@@ -1948,7 +1951,7 @@ var GS_CMDID = {
   
                     // ----- x0300+16 set-state-report-period -------------------------------------------------------------------------------------
                     {   
-                        type_id:'2-781', dev: GS_DEVTYPE_TAG, name:'set-state-report-period', uid: 'tag-addr', action_type:'set', uri_path:'Info/state-report-period',
+                        type_id:'2-781', dev: GS_DEVTYPE_TAG, name:'set-state-report-period', uid: 'tag-addr', action_type:'set', uri_path:'ESL-Tag/Info/state-report-period',
                         param:[{s:'tag-addr'},{s:'state-report-period', d:'Info/state-report-period'}], 
                         fun: setCmd
                     }, // Reply                
@@ -1967,7 +1970,7 @@ var GS_CMDID = {
 
                     // ----- x0300+14 set-data-request-period -------------------------------------------------------------------------------------
                     {   
-                        type_id:'2-782', dev: GS_DEVTYPE_TAG, name:'set-data-request-period', uid: '', action_type:'set', uri_path:'Info/data-request-period',
+                        type_id:'2-782', dev: GS_DEVTYPE_TAG, name:'set-data-request-period', uid: '', action_type:'set', uri_path:'ESL-Tag/Info/data-request-period',
                         param:[{s:'tag-addr'},{s:'data-request-period',d:'data-request-period'}], 
                         fun: setCmd
                     }, // Reply                
@@ -2311,10 +2314,16 @@ var getSensorHubRESTful = function( uri, outObj )
             }
 
             if( devObj.typeinfo.devType === GS_DEVTYPE_ROUTER )
+            {
                 outObj.ret = JSON.stringify(restfulIoTGW( uri , devObj ));
+                outObj.type = ESL_ROUTER_NAME;
+            }
             else if ( devObj.typeinfo.devType === GS_DEVTYPE_TAG )
+            {
                 outObj.ret = JSON.stringify(restfulSenHub( uri , devObj ));
-            
+                outObj.type = ESL_TAG_NAME;
+            }
+
             if( typeof outObj.ret !== 'undefined')
                 ret = STATUS.OK;
         }
@@ -2434,15 +2443,15 @@ var wsnget = function( uri, inParam, outData )
 // type: URI_TYPE.CONNECTIVITY ; URI_TYPE.SENSORHUB
 // uri: /SenHub/00124b00043a9766/SenHub/Action/reboot
 // data: v, bv, sv
-var procSetRestful = function( type, uri, data, res, cb )  // res: http response handler, data cb: callback function
+var procSetRestful = function( type, devType, uri, data, res, cb )  // res: http response handler, data cb: callback function
 {
     // To find uri_path
     var uriList = uri.split('/');
     var agentID = uriList[1];
     var params = {};    
 
-    // key = Action/reboot
-    var key = uriList[uriList.length-2] +'/' + uriList[uriList.length-1];
+    var key = devType + '/' + uriList[uriList.length-2] +'/' + uriList[uriList.length-1];
+
 
     // tx-level
      var value = 'undefined'; 
@@ -2452,8 +2461,14 @@ var procSetRestful = function( type, uri, data, res, cb )  // res: http response
         var actionMap = gUrinMap.get(key);
 
         if( type === URI_TYPE.SENSORHUB )
-            params['devId'] = agentID;
-
+        {
+            if ( gDevIDMap.has(agentID) === true )
+            {
+                sensorHub = gDevIDMap.get(agentID);
+                if( typeof sensorHub !== 'undefined' )   
+                    params['devId'] = sensorHub.uid;
+            }
+        }
         params.cb  = cb;       
         params.res = res;
 
@@ -2564,6 +2579,7 @@ var wsnput = function( uri, data, res, callback ) {
       {        
         //console.log('URI_TYPE.CONNECTIVITY ===============');          
         getConnectivityRESTful(uri, outData);
+        outData.type = ESL_GATEWAY_NAME;
         break;
       }
       case URI_TYPE.SENSORHUB:
@@ -2600,7 +2616,7 @@ var wsnput = function( uri, data, res, callback ) {
                 return code;                            
             }
             else
-                return procSetRestful(uriType, uri, data, res, callback );
+                return procSetRestful(uriType, outData.type , uri, data, res, callback );
         }   
         else
         {
