@@ -55,7 +55,7 @@ var wsclients = [];
 
 //    ============== <Definition> ==============
 
-const TIMEOUT = 90000; // 90 seconds
+const TIMEOUT = 240000; // 240 seconds
 
 
 
@@ -224,7 +224,7 @@ const ESL_TAG_INFO =
             {n:"timeout",v:6,asm:"rw",min:4, max:8, u:'count'},                    // count  The tag rejoin count threshold to monitor how many times data-request without response
             {n:"battery",v:70,asm:"r",min:0, max:100, u:"%"},                      // battery ratio 0 ~ 100 %
             {n:'status', v:DEV_STATUS.IDLE, asm:'r'},                     
-            {n:"fw-version",sv:'',asm:"r"}
+            {n:"fw-version",v:0,asm:"r"}
           ],
 
     bn: 'Info'    
@@ -344,11 +344,22 @@ var assignValue = function (des, value, key)
 
 var getValue = function( src )
 {
-    //message = src.toString();
-    //message = message.replace(/[\u0000-\u0019]+/g,""); // eric add to remove not viewable syntax 
-    var jsrc = JSON.parse( JSON.stringify(src) );
-
+    var jsrc = 'undefined';
     var value = 'undefined';
+    //var message = src.toString();
+    //message = message.replace(/[\u0000-\u0019]+/g,""); // eric add to remove not viewable syntax     
+    if( typeof src === 'string')
+    {
+	try {
+	 jsrc =  JSON.parse( src );
+	} catch (e) {
+	    console.log("not JSON");
+	    return value;
+	}
+    }
+    else if ( typeof src === 'object')
+        jsrc = src;
+
 
     if( typeof jsrc.v !== 'undefined' )
         value = jsrc.v;
@@ -526,7 +537,8 @@ var procReplyData = function( dstObj, eslobj, pMap )
     if( typeof params.cb !== 'undefined' && typeof params.res !== 'undefined' ) // HTTP Response
     {
         console.log('reply http code '+ httpCode);
-        params.cb(params.res, httpCode, '');
+        params.cb(params.res, httpCode, '{"sv":"Successful"}');
+        //params.cb(params.res, httpCode, '');
     }
     // 4. remove
     gActionMap.remove(sessionId);
@@ -807,7 +819,7 @@ var procTagReg = function( topic, eslobj, pMap ) {
     var devobj = JSON.parse(JSON.stringify(DEVICE_INFO));
     var devType = JSON.parse(JSON.stringify(DEVICE_TYPE)); 
     
-    if( gTagMap.has(uid) == true ) return; //  to prevent re-gister twice
+    //if( gTagMap.has(uid) == true ) return; //  to prevent re-gister twice
 
     tagObj = {};
     var routerObj = 'undefined';
@@ -1018,9 +1030,9 @@ var RemoveTag = function( uid )
     // remove tag info from router 
     routerObj = gRouterMap.get(tagObj.parent);
 
-    console.log('router '+routerObj );
+
     if( typeof routerObj === 'undefined' ) return;
-    console.log('router 222'+routerObj );
+
     routerObj.taginfo.remove(uid);
 
     routerObj.rfinfo.num = routerObj.rfinfo.num - 1;
@@ -1056,16 +1068,24 @@ var procEmergancyReport = function( topic, eslobj, pMap )
     {
         case GS_CODE.DISCONNECT: //disconnect
         {
-            if( type ==  32 || type == 48 ) // send disconnect event 
+            if( type ==  32 || type == 48 ) 
+            
+            {   // Router(32), Tag(48) send disconnect event 
+
+                var eventMsgObj ={};
+                console.log('[Emergancy] disconnect!' + JSON.stringify(devObj.devinfo));
+                //devObj.devinfo.status = 0;
+                //eventMsgObj.susiCommData = devObj.devinfo;
+                //eventEmitterObj.emit(groupName, groupName, WSNEVENTS[3].event, eventMsgObj);  
+
+
                 if( type == 32 )
                     RemoveRouter(uid);
                 else
                     RemoveTag(uid);
 
-                var eventMsgObj ={};
-                devObj.devinfo.status = 0;
-                eventMsgObj.susiCommData = devObj.devinfo;
-                eventEmitterObj.emit(groupName, groupName, WSNEVENTS[3].event, eventMsgObj);  
+
+            }
         }
         break;
         default:
@@ -1181,6 +1201,7 @@ var sendAction = function( pMap, paramVals )
     eslobj['Transaction-Id'] = sessionId;
 
 
+
     // param    
     for( var i=0; i< pMap.param.length; i++) {
         var s = pMap.param[i]['s'];
@@ -1204,8 +1225,8 @@ var sendAction = function( pMap, paramVals )
 
     Client.publish(GS_MQTT_SUB, msg);
 
-    if( typeof paramVals['timeout'] !== 'undefined')
-        timeout = paramVals['timeout'];
+    if( typeof paramVals['API-timeout'] !== 'undefined')
+        timeout = paramVals['API-timeout'];
 
     if( typeof paramVals['cb'] !== 'undefined' )
     {
@@ -1310,6 +1331,14 @@ var procImageUpdate = function( pMap, input )
     //var crc16 = require('../../node_modules/node-crc16/index.js');
     var imagename = '';
     var value = getValue(input.data);   
+   
+   if( value === 'undefined' ) 
+   {
+        var cb = input['cb'];
+	var ret = input['res'];
+        cb(res, STATUS.BAD_REQUEST, '{"sv":"Bad Request"}');    
+	return;
+   }
 
     // Decode base 64
     var buf = new Buffer(value, 'base64'); 
@@ -1334,7 +1363,7 @@ var procImageUpdate = function( pMap, input )
     // basic http info
     param.res = input['res'];
     param.cb = input['cb'];
-    param['timeout'] = 120000; // 120 sec
+    param['API-timeout'] = 300000; // 120 sec
 
     // cmd parameters
     param['tag-addr'] = input['devId'];
@@ -1537,8 +1566,8 @@ var GS_CMDID = {
 
                     { 
                       type_id:'1-2', dev: GS_DEVTYPE_ROUTER, name:'router-registration', protocol: 'Zigbee', mac:'zdr-address', uid: 'device-ieeeadr', 
-                      param:[{s:'device-ieeeadr'},{s:'ip'},{s:'zdt-address'},{s:'zdt-fw-version',d:'Info/zd-fw-version'},
-                             {s:'zdr-address'},{s:'zdr-fw-version'}], 
+                      param:[{s:'device-ieeeadr'},{s:'ip'},{s:'zdt-address'},{s:'zdt-fw-version'},
+                             {s:'zdr-address'},{s:'zdr-fw-version',d:'Info/zd-fw-version'}], 
                       fun: procRouterReg
                     },    
 
@@ -1971,7 +2000,7 @@ var GS_CMDID = {
                     // ----- x0300+14 set-data-request-period -------------------------------------------------------------------------------------
                     {   
                         type_id:'2-782', dev: GS_DEVTYPE_TAG, name:'set-data-request-period', uid: '', action_type:'set', uri_path:'ESL-Tag/Info/data-request-period',
-                        param:[{s:'tag-addr'},{s:'data-request-period',d:'data-request-period'}], 
+                        param:[{s:'tag-addr'},{s:'data-request-period',d:'Info/data-request-period'}], 
                         fun: setCmd
                     }, // Reply                
                     {   
@@ -2145,11 +2174,16 @@ var getUriType = function ( uri )
 var findResourcebyName = function( srcObj, name )
 {
     //console.log('src len'+ srcObj['e'].length);
+    var data = 'undefined';
     for( var i=0; i < srcObj['e'].length; i++ )
     {
         //console.log('name '+ srcObj['e'][i]['n']);
         if( name === srcObj['e'][i]['n'] )
-            return srcObj['e'][i];
+        {
+            data = JSON.parse(JSON.stringify(srcObj['e'][i]));
+            return data;
+            //return srcObj['e'][i];
+        }
     }
 }
 
@@ -2177,15 +2211,17 @@ var restfulIoTGW = function ( path, devObj )
             {
                 if( pathArray[i] == 'Info' && ( i+1 === pathArray.length-1 ) && pathArray[i+1] != '' && pathArray[i+1] !== 'e' )  // Info/DeviceList => to find 'n'
                 {
-                        tmp = findResourcebyName(tmp[pathArray[i]],pathArray[i+1]);   
+                        tmp = findResourcebyName(tmp[pathArray[i]],pathArray[i+1]);  
+                        delete tmp.n; 
                         break;
                 }
                 tmp = tmp[pathArray[i]];
                 if( typeof tmp == 'undefined') break;
-                console.log('ret= '+ JSON.stringify(tmp));
+                //console.log('ret= '+ JSON.stringify(tmp));
             }
         }        
     }
+    //console.log('ret= '+ JSON.stringify(tmp));
     return tmp;
 }
 
@@ -2244,6 +2280,7 @@ var restfulSenHub = function( path , devObj )
                     ( i+1 === pathArray.length-1 ) && pathArray[i+1] != '' && pathArray[i+1] !== 'e' )  // Info/DeviceList => to find 'n'
                 {
                         tmp = findResourcebyName(tmp[pathArray[i]],pathArray[i+1]);
+                        delete tmp.n;
                         break;
                 }
                 tmp = tmp[pathArray[i]];
@@ -2252,6 +2289,7 @@ var restfulSenHub = function( path , devObj )
             }
         }        
     }
+    //console.log('ret= '+ JSON.stringify(tmp));
     return tmp;
 }
 
@@ -2479,9 +2517,7 @@ var procSetRestful = function( type, devType, uri, data, res, cb )  // res: http
         }
         else
         {      
-            console.log('set data ' + data);
             value = getValue( data );
-
             if( typeof value !== 'undefined' && actionMap.param.length > 0 ) // tr
             {
                 for( var i=0; i< actionMap.param.length; i++ )
@@ -2500,7 +2536,14 @@ var procSetRestful = function( type, devType, uri, data, res, cb )  // res: http
                     }
                 }
             }
+	    else
+	    {
+		consloe.log('procSetResful Fail: Data is Wrong ');
+                cb(res, STATUS.BAD_REQUEST, '{"sv":"Bad Request"}');
+                return;
+	    }
         }
+        console.log('procSetRestful ' + params.toString());
         actionMap.fun( actionMap, params );       
     }        
 }
@@ -2606,8 +2649,9 @@ var wsnput = function( uri, data, res, callback ) {
     if ( typeof outData.ret !== 'undefined' )
     {  
         var jObj = JSON.parse(outData.ret);  
-        console.log('[wsnput] ret '+ jObj['n'] + 'asm= ' + jObj['asm'] );
-        if( typeof jObj['n'] !== 'undefined' && typeof jObj['asm'] !== 'undefined' ) 
+        //console.log('[wsnput] ret '+ jObj['n'] + 'asm= ' + jObj['asm'] );
+        //if( typeof jObj['n'] !== 'undefined' && typeof jObj['asm'] !== 'undefined' ) 
+        if( typeof jObj['asm'] !== 'undefined' ) 
         {
             if( jObj['asm'].indexOf('w') == -1 ) // Read-Only
             {
