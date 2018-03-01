@@ -169,7 +169,6 @@ const ESL_GW_INFO =
                 {n:'add-permit-tag-list',sv:'',asm:'w'},
                 {n:'remove-permit-tag-list',sv:'',asm:'w'},
                 {n:'zd-securekey', sv:'', asm:'w'},
-                {n:'tx-level', v:5, asm:'rw'},
                 {n:'pan-id',v:1, asm:'r'},
                 {n:'zd-fw-version', v:1, asm:'r'},
                 {n:'status', v:DEV_STATUS.IDLE, asm:'r'},                
