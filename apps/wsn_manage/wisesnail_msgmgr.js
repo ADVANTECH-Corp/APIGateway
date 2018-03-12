@@ -20,6 +20,7 @@ var eventEmitterObj = new EventEmitter();
 var genHtmlEventObj = new EventEmitter();
 var EVENT = require('./html_event.js');
 var VgwMap = new HashMap();
+var ServiceMap = new HashMap();
 var SensorHubMap = new HashMap();
 var ConnectivityMap = new HashMap();
 var MqttPublishMap = new HashMap();
@@ -71,7 +72,8 @@ const MSG_TYPE = {
                    VGW_QUERY_HEART_BEAT_VALUE_REQUEST:16,   
                    VGW_QUERY_HEART_BEAT_VALUE_RESPONSE:17,
                    VGW_CHANGE_HEART_BEAT_VALUE_REQUEST:18,
-                   VGW_CHANGE_HEART_BEAT_VALUE_RESPONSE:19   
+                   VGW_CHANGE_HEART_BEAT_VALUE_RESPONSE:19,
+                   VGW_SERVICE_CONNECT: 20
 		 };
 				 
 const OS_TYPE = { 
@@ -270,6 +272,15 @@ var mqttMessageCallback = function (topic, message){
 
           break;
       }
+    case MSG_TYPE.VGW_SERVICE_CONNECT:
+    {
+      console.log('[' + device_id + ']' + ': receive VGW_SERVICE_CONNECT');
+
+      if ( ServiceMap.has(device_id) === false ) {
+        ServiceMap.set(device_id, device_id );    
+      }  
+      
+    }
     case MSG_TYPE.VGW_DISCONNECT:
       {
           console.log('[' + device_id + ']' + ': receive VGW_DISCONNECT');
@@ -440,6 +451,8 @@ function doesVGWNeedReConnect( deviceID ){
 
  if ( VgwMap.has(deviceID) === false ) {
    //console.log('[doesVGWNeedReConnect] Cannot find ' + deviceID ); // eric mark
+   if( ServiceMap.has(deviceID) == true ) return false;
+
    return true;
  }
 
@@ -924,6 +937,9 @@ function getMsgType(topic, jsonObj){
                  return MSG_TYPE.VGW_DISCONNECT;
              }
         }
+
+        if( jsonObj.susiCommData.type === 'Service' )
+          return MSG_TYPE.VGW_SERVICE_CONNECT;
       
         if ( jsonObj.susiCommData.type === 'SenHub' && 
              jsonObj.susiCommData.commCmd === 1 ){
