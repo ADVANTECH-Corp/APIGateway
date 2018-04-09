@@ -1,16 +1,4 @@
-require('getmac').getMac(function(err,macAddress){
-    if (err)  throw err;
-    console.log('-----------------------------');
-    console.log('getMac: ' + macAddress); 
-    
-    if( process.env.MAC != undefined )	
-     var mac = process.env.MAC.replace(/:/g,'') || macAddress.toString().replace(/:/g,'');
-    else
-     var mac = macAddress.toString().replace(/:/g,'');
 
-    gHostConnectivity = '0007' + mac;
-    //console.log( 'gHostConnectivity = ' + gHostConnectivity );
-});
 var STATUS = require('../../inc/statusCode.js').STATUS_CODE;
 var Uuid = require('node-uuid');
 var Mqtt = require('mqtt');
@@ -33,6 +21,8 @@ const HEART_BEAT_CHECK_INTERVAL = 5000; //5 seconds
 const groupName = 'WSNManage';
 var routers = [{"path":"*","action":"GET,PUT"}];
 
+var Client = 'undefined';
+
 // Define Event Type for auto update by websocket  
 var WSNEVENTS = [{"event":"eConnectivity_Capability"},
                  {"event":"eConnectivity_UpdateData"},
@@ -46,9 +36,26 @@ var GET_RESULT ={"Net":{"e": [{"n":"Health","v":86}],"bn":"Net"}};
 var wsclients = [];
 
 
-var Client = Mqtt.connect('mqtt://127.0.0.1');
-//var Client  = Mqtt.connect('mqtt://advigw-mqtt-bus');
-//var Client  = Mqtt.connect('mqtt://mqtt.advigw_network');
+require('getmac').getMac(function(err,macAddress){
+  if (err)  throw err;
+  console.log('-----------------------------');
+  console.log('getMac: ' + macAddress); 
+  
+  if( process.env.MAC != undefined )	
+   var mac = process.env.MAC.replace(/:/g,'') || macAddress.toString().replace(/:/g,'');
+  else
+   var mac = macAddress.toString().replace(/:/g,'');
+
+  gHostConnectivity = '0007' + mac;
+  console.log( 'gHostConnectivity = ' + gHostConnectivity );
+  Client = Mqtt.connect('mqtt://127.0.0.1');
+//Client  = Mqtt.connect('mqtt://advigw-mqtt-bus');  
+  Client.on('connect', mqttConnectCallback );
+  Client.on('message', mqttMessageCallback);
+  Client.on('offline', mqttDisconnectCallback);  
+});
+
+
 Client.queueQoSZero = false;
 
 const MSG_TYPE = { 
@@ -1951,7 +1958,5 @@ module.exports = {
   wsclients: wsclients,  
 };
 
-Client.on('connect', mqttConnectCallback );
-Client.on('message', mqttMessageCallback);
-Client.on('offline', mqttDisconnectCallback);
+
 
