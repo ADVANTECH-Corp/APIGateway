@@ -510,7 +510,7 @@ function doesVGWNeedReConnect( deviceID ){
    console.log('[doesVGWNeedReConnect] sensor hub info spec is null');
    return true;
  }
- console.log('[doesVGWNeedReConnect] ' + deviceID + ' data OK' );
+ //console.log('[doesVGWNeedReConnect] ' + deviceID + ' data OK' );
  return false;
 }
 
@@ -944,9 +944,6 @@ function getMsgType(topic, jsonObj){
                  return MSG_TYPE.VGW_DISCONNECT;
              }
         }
-
-        if( jsonObj.susiCommData.type === 'Service' )
-          return MSG_TYPE.VGW_SERVICE_CONNECT;
       
         if ( jsonObj.susiCommData.type === 'SenHub' && 
              jsonObj.susiCommData.commCmd === 1 ){
@@ -956,7 +953,10 @@ function getMsgType(topic, jsonObj){
              if ( jsonObj.susiCommData.status === '0' || jsonObj.susiCommData.status === 0){
                  return MSG_TYPE.SENSORHUB_DISCONNECT;
              }
-        }      
+        }   
+
+        if( jsonObj.susiCommData.type !== 'undefined' )
+          return MSG_TYPE.VGW_SERVICE_CONNECT;
     }
   
     if ( topic_arr[4] === 'agentactionreq'){
