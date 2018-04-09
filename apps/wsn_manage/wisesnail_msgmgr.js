@@ -42,9 +42,9 @@ require('getmac').getMac(function(err,macAddress){
   console.log('getMac: ' + macAddress); 
   
   if( process.env.MAC != undefined )	
-   var mac = process.env.MAC.replace(/:/g,'') || macAddress.toString().replace(/:/g,'');
+   var mac = process.env.MAC.replace(/[:-]/g,'') || macAddress.toString().replace(/[:-]/g,'');
   else
-   var mac = macAddress.toString().replace(/:/g,'');
+   var mac = macAddress.toString().replace(/[:-]/g,'');
 
   gHostConnectivity = '0007' + mac;
   console.log( 'gHostConnectivity = ' + gHostConnectivity );
