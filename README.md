@@ -7,6 +7,9 @@ Install to system
 or assign destination dir to be installed
 >make install DESTDIR=/home/adv/rootfs
 
+enable service
+>sudo systemctl enable apigw.service
+
 start service
 >sudo systemctl start apigw.service
 

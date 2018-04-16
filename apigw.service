@@ -3,9 +3,7 @@ Description=API Gateway Service
 After=network.target systemd-sysctl.service systemd-modules-load.service
 
 [Service]
-User=root
-WorkingDirectory=/usr/local/lib/node_modules/APIGateway
-ExecStart=nodejs app.js
+ExecStart=/usr/bin/nodejs /usr/local/lib/node_modules/APIGateway/app.js
 
 [Install]
 WantedBy=multi-user.target
