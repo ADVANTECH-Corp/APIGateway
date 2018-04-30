@@ -688,6 +688,7 @@ function connectivityMapUpdate( messageType, vgw_id, osInfo, layer, connType, in
               }
               if ( layer === 3 ){
                  //console.log( 'messageType =' + messageType + ', [layer] :' + layer + ', connType='+ connType +', infoObj[' + key +']=======>' + infoObj[key] );
+                 var gwInfoReady = 0;
                  var device_id=infoObj[key];
                  if ( ConnectivityMap.has(device_id) === false ) {
                    //copy DEVICE_OBJ object as vgw objcect
@@ -695,6 +696,7 @@ function connectivityMapUpdate( messageType, vgw_id, osInfo, layer, connType, in
                  }
                  else{
                    var connectivity = ConnectivityMap.get(device_id);
+                   gwInfoReady = 1;
                  }
                 
                  if ( messageType === MSG_TYPE.VGW_INFO_SPEC ){ 
@@ -722,8 +724,14 @@ function connectivityMapUpdate( messageType, vgw_id, osInfo, layer, connType, in
 */
                  }
                    
-                 if ( messageType === MSG_TYPE.VGW_INFO ){
-  
+                if ( messageType === MSG_TYPE.VGW_INFO ) {
+          
+                  if( gwInfoReady == 0 ) 
+                  {
+                    console.log('gw infosepc is not ready');
+                    return;
+                  }
+					   
                    var tmpInfoSpecObj = JSON.parse(connectivity.dev_info_spec);
                    getDeviceCapability(tmpInfoSpecObj, infoObj);
                    
