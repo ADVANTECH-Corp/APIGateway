@@ -3,7 +3,7 @@ Description=API Gateway Service
 After=network.target systemd-sysctl.service systemd-modules-load.service
 
 [Service]
-ExecStart=/usr/bin/nodejs /usr/local/lib/node_modules/APIGateway/app.js
+ExecStart=/usr/bin/nodejs /usr/local/EdgeSense/API-GW/app.js
 
 [Install]
 WantedBy=multi-user.target
