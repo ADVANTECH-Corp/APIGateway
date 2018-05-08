@@ -7,6 +7,7 @@ SERVICE_NAME=${PROJECT_NAME}.service
 
 function install_dependency ()
 {
+    sudo apt -y install nodejs
     return
 }
 
