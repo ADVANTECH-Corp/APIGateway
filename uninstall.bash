@@ -11,21 +11,21 @@ function remove_service ()
             systemctl disable ${SERVICE_NAME}
             rm -f --preserve-root /etc/systemd/system/${SERVICE_NAME}
         fi
-        echo "remove_service ... done"
     fi
+    return
 }
 
 function remove_project ()
 {
     if [ ! -z "${PROJECT_NAME}" ] && [ ! -z "${INS_DIR}" ]; then
         rm -rf --preserve-root ${INS_DIR} || exit 1
-        echo "remove_project ... done"
     fi
+    return
 }
 
 function remove_others ()
 {
-    echo "remove_others ... done"
+    return
 }
 
 echo "uninstall ${PROJECT_NAME} ..."
