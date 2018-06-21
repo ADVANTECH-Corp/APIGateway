@@ -1522,7 +1522,7 @@ function getUriType( uri ){
  
 function getRESTfulArrayValue( isAsm, path, jsonData, outObj ){
   
-  var newPath = path.replace(/\/([A-Z a-z 0-9]*)\/?$/g,'/e/');
+  var newPath = path.replace(/\/([A-Z a-z 0-9_]*)\/?$/g,'/e/');
   var pathPattern = path.replace(/\/([A-Z a-z 0-9]*)\/?$/g,'/');
   var keyName = path.replace(pathPattern, '');
   keyName = keyName.replace(/\//g, '');
