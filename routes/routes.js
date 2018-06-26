@@ -1,8 +1,9 @@
 var STATUS = require('../inc/statusCode.js').STATUS_CODE;
 var webSocketCtl = require('./websocket.js');
+var advlog = require('../apps/log_mgt/AdvJSLog.js');
+
 
 // Global Variables
-
 var ReturnHead = {'Connection':'close',
 				  'Content-Type':'application/json',
 				  'Access-Control-Allow-Origin':'*'};
@@ -25,8 +26,8 @@ var procReply = function(req, res, next, app ) {
 	var outret = {};
 	var code = STATUS.METHOD_NOT_ALLOWED;
 	var uri = '';
-	//console.log('method: '+ req.method);
-	//console.log('path: '+ req.path);
+	advLogWrite(LOG_DEBUG, 'method: '+ req.method);
+	advLogWrite(LOG_DEBUG, 'path: '+ req.path);
 	
 	var n = app.group.length + 2;
 	uri = req.path.substring(n);  
@@ -62,6 +63,7 @@ var procReply = function(req, res, next, app ) {
 
 }
 
+	
 
 var loadAppService = function( router , ioSocket, wss ) {
 
@@ -71,6 +73,9 @@ var loadAppService = function( router , ioSocket, wss ) {
 	var hLd = null;
 
 
+
+	//advLogWrite(LOG_INFO, 'file name: '+ __filename + '[routes.js] name '+global.AppName + ' ver: ' + global.AppVersion);
+
 	//for(var j =0; j < 2; j++ ) 
 	{			
 		var app = {"n":null}; 
@@ -78,7 +83,7 @@ var loadAppService = function( router , ioSocket, wss ) {
 		//hLd = require('../apps/sample/index.js');
 
 		if( hLd == undefined || hLd == null ) {
-			console.log('handle is null');
+			advLogWrite(LOG_ERROR,'handle is null');
 			return;
 		}	
 
@@ -97,7 +102,6 @@ var loadAppService = function( router , ioSocket, wss ) {
         // To combine app in services list
 		app.n = hLd.APIs.group;
 		sList.push(app);
-		//console.log(JSON.stringify(webSocketCtl.appInterface[0]));
 
 		// Load path to Router	
 		var paths = hLd.APIs.routers;
@@ -122,10 +126,10 @@ var loadAppService = function( router , ioSocket, wss ) {
 						router.delete(path,hLd.APIs.procFn);
 						break;
 					default:
-						console.log('Unknow Action: "'+ actions[i] + '" in Module: '+ hLd.APIs.group );
+					advLogWrite(LOG_INFO, 'Unknow Action: "'+ actions[i] + '" in Module: '+ hLd.APIs.group );
 				}
 			} // End of For actions 
-			console.log('path:' + path); 
+			advLogWrite(LOG_INFO, 'path:' + path); 
 		} // End of For paths
 
 	}
@@ -143,7 +147,7 @@ var appRouter = function(router,socketio,wss) {
 	
 	router.all('*',function(req, res, next){
 		// Debug for ALL Command
-		console.log('all method captured param'+JSON.stringify(req.params) +'body=' + JSON.stringify(req.body));
+		advLogWrite(LOG_DEBUG, 'all method captured param'+JSON.stringify(req.params) +'body=' + JSON.stringify(req.body));
 		next();
 	});
 	loadAppService(router,socketio,wss);

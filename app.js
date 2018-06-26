@@ -1,4 +1,8 @@
-global.AppVersion = '1.0.0';
+
+global.AppVersion = "1.0.1";
+global.AppName = "API-GW";
+
+
 
 var express = require("express");
 var socket_io = require('socket.io');
@@ -14,6 +18,19 @@ var WebSocketServer = require('ws').Server;
 
 var ServerPort = 3000;
 var enableAuth = 0;
+
+var getappInfo = function(  ) {
+	var appinfo = require("./package.json");
+	if( appinfo != 'undefined')
+	{
+		global.AppVersion = appinfo.version;
+		global.AppName = appinfo.name;
+		//console.log('[app.js] name '+global.AppName + ' ver: ' + global.AppVersion);
+	}	
+}
+
+// app information
+getappInfo();
 
 // OPTIONS
 app.use(function(req, res, next) {
