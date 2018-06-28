@@ -41,7 +41,6 @@ var elsalive = function()
 
 var els_insert = function( _index, _type, _body )
 {
-    return 0 ;
     if( g_els_alive === 0 ) return 0;
 
     var response = g_elsclient.index({
