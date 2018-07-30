@@ -3,7 +3,7 @@ var STATUS = require('../../inc/statusCode.js').STATUS_CODE;
 
 const EventEmitter = require('events');
 var eventEmitterObj = new EventEmitter();
-
+var api_utility = require('../../inc/api-gw_utility.js');
 /* ====================================================================
     Note
     You need implement below 4 items integrate with EIS RESTful API Interfaces.
@@ -18,7 +18,7 @@ var eventEmitterObj = new EventEmitter();
 // <1> ============== <Definition> ==============
 
 // Entry path of your app => uri: restapi/LogManage/ => If URI is matching your group name will pass to this Module
-const groupName = 'LogManage';
+const groupName = 'elog';
 
 // path: router path : => rui: restapi/LogManage/* => path match restapi/LogManage/ will pass to this module
 // action: Support which HTTP Action ( GET, PUT, POST, DELETE )
@@ -26,26 +26,116 @@ const groupName = 'LogManage';
 var routers = [{"path":"*","action":"GET,PUT"}];
 
 // Define Event Type for auto update by websocket  
-var WSNEVENTS = [{"event":"eUpdateLog"},
-                 {"event":"eUpdateDataFlowLog"}];
+var WSNEVENTS = [];
+//var WSNEVENTS = [{"event":"eUpdateLog"},
+//               {"event":"eUpdateDataFlowLog"}];
 
-var wsclients = [];
+var g_mVersion = "1.0.1";
+var g_mDescription = "The eLog is log service of EdgeSense."
+var g_Mgt = {mgt:{info:{e:[{n:'version',sv:g_mVersion,asm:'r'},{n:'description',sv:g_mDescription,asm:'r'}]},
+                   config:{e:[{n:'enable-data-flow',bv:false, asm:'rw'}]}}};
+
+var g_eEndPoints = ["mgt"]
+
+
+var wsclients = []; // not support websocket
 //    ============== <Definition> ==============
 
 
 
 // <2>  ============== <RESTful> ==============
+const URI_TYPE = { 
+    LIST:   1000,        // <Group>/list
+    MGT:       0,        // < Group>/mgt
+    SERVICE:   1,        // <Group>/<endpoint>
+    UNKNOW: -100,        // Unknow REST Endpoint
+};
+
+var getUriType = function ( uri )
+{   
+    var uriList = uri.split('/');
+    var category = uriList[0];
+
+    if ( category === 'list' )
+        return URI_TYPE.LIST ;
+    else if ( category === g_eEndPoints[URI_TYPE.MGT] || typeof category === 'undefined' )
+        return URI_TYPE.MGT ;
+    else if ( typeof category !== 'undefined' )
+        return URI_TYPE.SERVICE;      
+    
+    return URI_TYPE.UNKNOW;
+}
+
+
+
+var getMgtRESTful = function( uri, outObj )
+{    
+    var path = uri.replace(/^mgt/g,'');
+    var ret = STATUS.NOT_FOUND;
+    
+    advLogWrite( LOG_DEBUG, 'getMgtRESTful uri = ' + path );
+
+    if ( path === '' || path === '/' ){ // Capability with data
+        outObj.ret = JSON.stringify(g_Mgt);
+        ret = STATUS.OK;
+    }else{
+        outObj.ret = queryAdvJSONbyPath(uri, g_Mgt);
+        if( typeof outObj.ret !== 'undefined' )
+            ret = STATUS.OK; 
+    }
+
+    return ret;    
+}
 
 // Description: process RESTful 'GET' Request
-var wsnget = function( uri, inParam, outData ) {
+var logget = function( uri, inParam, outData ) {
     var code = STATUS.INTERNAL_SERVER_ERROR;
-    outData.ret = JSON.stringify(GET_RESULT);
-    code = STATUS.OK;
+    advLogWrite( LOG_DEBUG, 'logget uri = ' + uri );
+    var uriType = getUriType ( uri );
+    var code = STATUS.NOT_FOUND;
+
+    switch( uriType )
+    {
+      case URI_TYPE.LIST:
+      {        
+        advLogWrite(LOG_DEBUG,'URI_TYPE.LIST ===============');          
+        getListRESTful(uri, outData, g_eEndPoints );
+        break;
+      }
+      case URI_TYPE.MGT:
+      {
+        advLogWrite(LOG_DEBUG,'URI_TYPE.MGT ===============');
+        getMgtRESTful( uri, outData );
+        break;
+      }
+      case URI_TYPE.SERVICE:
+      {
+        advLogWrite(LOG_DEBUG,'URI_TYPE.SERVICE ===============');
+        getListRESTful( uri, outData, g_eEndPoints );
+      }
+      break;
+      default:
+      {
+        advLogWrite(LOG_DEBUG,'UnKnow URI ===============');
+        break;
+      }
+    }    
+
+    if ( typeof outData.ret !== 'undefined' )
+    {
+        outData.ret = outData.ret.toString();        
+        code = STATUS.OK;
+
+        advLogWrite(LOG_DEBUG,'-----------------------------------------');
+        advLogWrite(LOG_DEBUG,outData.ret);
+        advLogWrite(LOG_DEBUG,'-----------------------------------------');         
+    }
+
     return code;
 }
 
 // Description: process RESTful 'PUT' Request 
-var wsnput = function( path, data, res, callback ) {
+var logput = function( path, data, res, callback ) {
     cb = callback;
     if( test1 == 0)
         res1=res;
@@ -79,8 +169,8 @@ var addListener = function( userFn )
 module.exports = {
   group: groupName,
   routers: routers,
-  get: wsnget,
-  put: wsnput,
+  get: logget,
+  put: logput,
   events: WSNEVENTS,
   addListener: addListener,
   wsclients: wsclients,
@@ -92,6 +182,7 @@ module.exports = {
 var path = require("path");
 var loginfo = 'undefined';
 var seq_counter = 0;
+var g_enabllog = 0;
 
 // ElasticSearch
 var g_els = require('./els_sdk.js');
@@ -215,6 +306,34 @@ global.getISOTime = function()
     return new Date().toISOString().replace(/Z/,'');     // delete the dot and everything after    
 }  
 
+global.appendDataLogWisesnail = function( msg, prePath /* <SenHubID>/LoRa */ )
+{
+  if( typeof msg === 'undefined') return -1;
+
+  // dataFlow
+  if( typeof msg.dataFlow === 'undefined')
+  {
+      msg.dataFlow = '';
+      if( typeof prePath  !== 'undefined')
+        msg.dataFlow = prePath + '/' +global.AppName;
+      else
+        msg.dataFlow = prePath + '/' +global.AppName;
+
+  }else{
+
+    var path = msg.dataFlow + '/' + global.AppName;
+    msg.dataFlow = path;
+  }
+    
+  // seq
+  if( typeof msg.seq == 'undefined')
+  {
+    ++seq_counter;
+    msg.seq = seq_counter + '_' + getMSTime();   // index_time(long)
+  }
+  return 0;
+}
+
 global.appendDataLog = function( msg )
 {
   // dataFlow
@@ -233,9 +352,9 @@ global.appendDataLog = function( msg )
     ++seq_counter;
     msg.seq = seq_counter + '_' + getMSTime();   // index_time(long)
   }
-
-
 }
+
+
 
 global.advDataflowWrite = function ( type, seq, dataFlow, msg )
 {
@@ -251,7 +370,7 @@ global.advDataflowWrite = function ( type, seq, dataFlow, msg )
 
     if( typeof loginfo.dataflow.els !== 'undefined' )
     {        
-        console.log('advData= '+ dataFlow );
+        //console.log('advData= '+ dataFlow );
         var ts = seq.split("_");
         var table = dataFlow.split("/");
         var _index = "";
@@ -266,30 +385,29 @@ global.advDataflowWrite = function ( type, seq, dataFlow, msg )
         body.type = type;
         body.seq = seq;
         body.srcTs = ts[1]; // 123_13242424
-        body.dataFlow = msg;
-        body.reserved = ' ';
+        body.dataFlow = dataFlow;
+        body.reserved = msg;
         //console.log('_index= '+_index.toLowerCase() + ' body= ' + JSON.stringify(body) );
         //g_els.insert_id(els_df_name, 'logs', seq, body );  
         g_els.insert( _index.toLowerCase(), 'logs', body );   
     }
 
-    if ( typeof loginfo.dataflow.dynamic !== 'undefined' )
-        console.log(data);
+    //if ( typeof loginfo.dataflow.dynamic !== 'undefined' )
+      //  console.log(data);
 
 }
 
 global.advLogWrite = function( level, msg )
 { 
+    if( loginfo === 'undefined' || g_enabllog === 0 ) return;
 
-    if( loginfo === 'undefined' ) return;
-
-    var full_msg = '';
-    var short_msg = '';
-    var time = 'undefined';
-    var _level = 'undefined';
-    var filename = 'undefined';
-    var linenum =  'undefined';
-    var fnName = 'undefined';
+    var full_msg    = '';
+    var short_msg   = '';
+    var time        = 'undefined';
+    var _level      = 'undefined';
+    var filename    = 'undefined';
+    var linenum     =  'undefined';
+    var fnName      = 'undefined';
       
 
     if( (typeof loginfo.default.dynamic != 'undefined' && loginfo.default.dynamic.level >= level ) || 
@@ -318,13 +436,14 @@ global.advLogWrite = function( level, msg )
     }
 
     // save to log file
+    /*
     if( typeof loginfo.default.static !== 'undefined' && loginfo.default.static.level >= level )
     {
         if(loginfo.default.static.information === 1 )
             console.log(full_msg);
         else
             console.log(short_msg);
-    }    
+    }*/    
 
     // elastic search
     if( typeof loginfo.default.els !== 'undefined' && loginfo.default.els.level >= level )

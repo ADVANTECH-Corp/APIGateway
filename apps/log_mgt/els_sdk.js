@@ -2,16 +2,20 @@
 var elasticsearch = require('elasticsearch');
 var g_elsclient = 'undefined';
 var g_els_alive = 0;
-
+var g_elsServer = 'undefined';
 
 var init_els = function( elsServer )
 {
-    
+    console.log('els server ' + elsServer );
+
+    g_elsServer = elsServer;
+
     g_elsclient = new elasticsearch.Client({
         //host: 'localhost:9200',
-        host: elsServer,
-        log: 'trace'
-      });      
+        host: elsServer
+        //log: 'trace'
+      });   
+
       /*
       g_elsclient = new elasticsearch.Client({
         //host: 'localhost:9200',
@@ -29,11 +33,10 @@ var elsalive = function()
     requestTimeout: 1000
   }, function (error) {
     if (error) {
-      //console.trace('elasticsearch cluster is down!');
       console.log('elasticsearch cluster is down!');
       g_els_alive = 0;
     } else {
-      console.log('All is well');
+      console.log('elasticsearch ' + g_elsServer +  ' is well');
       g_els_alive = 1;
     }
   });

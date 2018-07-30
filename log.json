@@ -13,18 +13,14 @@
         },
         "dynamic":  {
             "level":  7,
-            "information":  1
-        },
-        "els": {
-            "level":  7,
-            "server": "172.22.12.55:9200"
+            "information":  0
         }
     },
 
     "dataflow":  {
         "enable": 1,
         "els": {
-            "server": "172.22.12.55:9200"
+            "server": "127.0.0.1:9200"
         },
         "dynamic":  {
             "enable":  1

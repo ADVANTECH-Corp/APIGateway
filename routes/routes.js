@@ -63,31 +63,35 @@ var procReply = function(req, res, next, app ) {
 
 }
 
-	
+//var gGroups = [ "log_mgt","wsn_manage","service" ];
+var gGroups = [ "log_mgt", "wsn_manage","service" ];
 
 var loadAppService = function( router , ioSocket, wss ) {
 
 	var services = {"service":{ "e":[]}};
 
 	var sList = [];
-	var hLd = null;
-
-
+	var hLd = null;	
 
 	//advLogWrite(LOG_INFO, 'file name: '+ __filename + '[routes.js] name '+global.AppName + ' ver: ' + global.AppVersion);
 
-	//for(var j =0; j < 2; j++ ) 
+	for( var j =0; j < gGroups.length; j ++ )
 	{			
 		var app = {"n":null}; 
-		hLd = require('../apps/wsn_manage/index.js');
-		//hLd = require('../apps/sample/index.js');
 
-		if( hLd == undefined || hLd == null ) {
-			advLogWrite(LOG_ERROR,'handle is null');
-			return;
-		}	
-
-		hLd.APIs.usrObj = procReply;
+		try{
+			hLd = require('../apps/'+gGroups[j]+'/index.js');
+			if( hLd == undefined || hLd == null ) {
+				advLogWrite(LOG_ERROR,'handle is null '+ gGroups[j]);
+				continue;
+			}	
+			}catch(e)
+			{
+				advLogWrite(LOG_ERROR,'Load Module is failed '+ gGroups[j]);
+				continue;
+			}
+	
+			hLd.APIs.usrObj = procReply;
 
 
 		// Add Router's' Process function point to Module Event Listen
@@ -102,7 +106,7 @@ var loadAppService = function( router , ioSocket, wss ) {
         // To combine app in services list
 		app.n = hLd.APIs.group;
 		sList.push(app);
-
+		
 		// Load path to Router	
 		var paths = hLd.APIs.routers;
 		for (var index in paths ){
@@ -114,7 +118,7 @@ var loadAppService = function( router , ioSocket, wss ) {
 				switch( actions[i])
 				{				
 					case 'GET':
-						router.get(path,hLd.APIs.procFn);
+						router.get(path,hLd.APIs.procFn);						
 						break;
 					case 'PUT':
 						router.put(path,hLd.APIs.procFn);

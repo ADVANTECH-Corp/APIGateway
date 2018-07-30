@@ -1,6 +1,7 @@
 
 var STATUS = require('../../inc/statusCode.js').STATUS_CODE;
 var advlog = require('../log_mgt/AdvJSLog.js');
+var servicemgr = require('../service/service_mgr.js');
 var Uuid = require('node-uuid');
 var Mqtt = require('mqtt');
 var HashMap = require('hashmap').HashMap;
@@ -39,6 +40,7 @@ var wsclients = [];
 
 require('getmac').getMac(function(err,macAddress){
   if (err)  throw err;
+
   advLogWrite(LOG_INFO, '-----------------------------');
   advLogWrite(LOG_INFO, 'getMac: ' + macAddress); 
   
@@ -49,7 +51,8 @@ require('getmac').getMac(function(err,macAddress){
 
   gHostConnectivity = '0007' + mac;
   advLogWrite(LOG_INFO, 'gHostConnectivity = ' + gHostConnectivity );
-  Client = Mqtt.connect('mqtt://127.0.0.1');
+  Client = Mqtt.connect('mqtt://172.22.12.175');
+//Client = Mqtt.connect('mqtt://127.0.0.1');
 //Client  = Mqtt.connect('mqtt://advigw-mqtt-bus');  
   Client.on('connect', mqttConnectCallback );
   Client.on('message', mqttMessageCallback);
@@ -126,6 +129,8 @@ const RESTFUL_VAL_TYPE = {
                            READ_ONLY: 3
                          }; 
 
+
+
 function addHostConnectivity(){
 
   advLogWrite(LOG_INFO, '[addHostConnectivity] gHostConnectivity = ' + gHostConnectivity );
@@ -144,7 +149,11 @@ function addHostConnectivity(){
   infoSpecObj.ver = 1;
 
   // <DataLog>
-  appendDataLog(infoSpecObj);
+  // {"Info":{"e":[{"n":"Name","sv":"Ethernet","asm":"r"}],"bn":"Info"},"bn":"0007000BAB838404","ver":1}
+  //appendDataLog(infoSpecObj); 
+  appendDataLogWisesnail(infoSpecObj); // Ethernet uses "API-GW" as root of data source
+  // {"Info":{"e":[{"n":"Name","sv":"Ethernet","asm":"r"}],"bn":"Info"},"bn":"0007000BAB838404","ver":1,"dataFlow":"0007000BAB838404/API-GW","seq":"1_1530251504961"}
+
   advDataflowWrite( 'Capability', infoSpecObj.seq, infoSpecObj.dataFlow, '' );
 
   /*create deviceinfo object*/
@@ -163,7 +172,6 @@ function addHostConnectivity(){
   buildFullInfoObj(false, keyStr, fullInfoObj);
   connObj.dev_full_info = JSON.stringify(fullInfoObj);
 
-  //
   ConnectivityMap.set(gHostConnectivity, connObj );
   
   //send generate html event ( IP-base connectivity)                   
@@ -205,13 +213,17 @@ var mqttConnectCallback =  function () {
   Client.subscribe('/cagent/admin/+/willmessage');
   Client.subscribe('/cagent/admin/+/agentactionreq');
   Client.subscribe('/cagent/admin/+/deviceinfo'); 
+
+  service_mqttConnectCallback(); // <service>
    
 }
 
 var mqttDisconnectCallback = function() {
 	advLogWrite(LOG_INFO, '[wisesnail_msgmgr] Mqtt disconnected !!!');
 
-	removeAllVGW();
+  removeAllVGW();
+
+  service_mqttDisconnectCallback(); // <service>
 }
 
 var mqttMessageCallback = function (topic, message){
@@ -223,7 +235,7 @@ var mqttMessageCallback = function (topic, message){
 */
   try {
       var re = /\0/g;
-      msg = message.toString().replace(re, '');
+      var msg = message.toString().replace(re, '');
       var jsonObj = JSON.parse(msg);
   } catch (e) {
       advLogWrite(LOG_ERROR, '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
@@ -231,6 +243,8 @@ var mqttMessageCallback = function (topic, message){
       return;
   }
   
+
+
   var msg_type = getMsgType(topic, jsonObj);
   var device_id = topic.toString().split('/')[3];
   
@@ -309,7 +323,7 @@ var mqttMessageCallback = function (topic, message){
                 }
           }
           else{
-            advLogWrite(LOG_ERROR, 'receive [MSG_TYPE.VGW_OS_INFO]: VgwMap does not exist !!');
+            advLogWrite(LOG_ERROR, 'receive [MSG_TYPE.VGW_OS_INFO]: VgwMap does not exist id = ' + device_id );
           }
           
           break;
@@ -329,7 +343,7 @@ var mqttMessageCallback = function (topic, message){
                 }
           }
           else{
-              advLogWrite(LOG_ERROR, '[MSG_TYPE.VGW_INFO_SPEC]: VgwMap does not exist !!');
+              advLogWrite(LOG_ERROR, '[MSG_TYPE.VGW_INFO_SPEC]: VgwMap does not exist id = ' + device_id);
           }
           //
           sendTotalConnectivityCapabilityEvent();
@@ -349,7 +363,7 @@ var mqttMessageCallback = function (topic, message){
                 }
           }
           else{
-              advLogWrite(LOG_ERROR, '[MSG_TYPE.VGW_INFO]: VgwMap does not exist !!');
+              advLogWrite(LOG_ERROR, '[MSG_TYPE.VGW_INFO]: VgwMap does not exist id = ' + device_id );
           }  
           break;
       }
@@ -456,6 +470,8 @@ var mqttMessageCallback = function (topic, message){
       advLogWrite(LOG_WARN, '[' + device_id + '] unknown message');
       break;
   }
+
+  service_mqttMessageCallback( topic, jsonObj ); // <service>
 // advLogWrite(LOG_DEBUG, '--------------------------------------------------------------');  
 }
 
@@ -559,7 +575,7 @@ function buildRequestMessageObj( requestType, messageObj){
   }
 }
 
-function sendRequestToWiseSnail( deviceID, messageObj ){
+global.sendRequestToWiseSnail = function( deviceID, messageObj ){
   
   var topic = '/cagent/admin/' + deviceID + '/agentcallbackreq';
   var message = JSON.stringify(messageObj);
@@ -710,12 +726,14 @@ function connectivityMapUpdate( messageType, vgw_id, osInfo, layer, connType, in
                  }
                 
                  if ( messageType === MSG_TYPE.VGW_INFO_SPEC ){ 
-                   connectivity.vgw_id = vgw_id;
-                   connectivity.os_info = osInfo;
-                   connectivity.conn_id = device_id; 
+                   connectivity.vgw_id    = vgw_id;
+                   connectivity.os_info   = osInfo;
+                   connectivity.conn_id   = device_id; 
                    connectivity.conn_type = connType;
+                   //{"Info":{"e":[{"n":"SenHubList","sv":"0017000E4C000011","asm":"r"},{"n":"Name","sv":"Bt","asm":"r"}],"bn":"Info"},"bn":"0007000E4CAB1232","ver":1}
+                   appendDataLogWisesnail(infoObj, connType); // <DataLog> Bt/API-GW -> <NET_Type>/API-GW>
+                   // {"Info":{"e":[{"n":"SenHubList","sv":"0017000E4C000011","asm":"r"},{"n":"Name","sv":"Bt","asm":"r"}],"bn":"Info"},"bn":"0007000E4CAB1232","ver":1,"dataFlow":"0007000E4CAB1232/API-GW","seq":"2_1530252638454"}
 
-                   appendDataLog(infoObj); // <DataLog>
                    advDataflowWrite( 'Capability', infoObj.seq, infoObj.dataFlow, '' );
 
                    connectivity.dev_info_spec = JSON.stringify(infoObj);
@@ -748,8 +766,10 @@ function connectivityMapUpdate( messageType, vgw_id, osInfo, layer, connType, in
 					   
                    var tmpInfoSpecObj = JSON.parse(connectivity.dev_info_spec);
                    getDeviceCapability(tmpInfoSpecObj, infoObj);
+                   //{"Info":{"e":[{"n":"SenHubList","sv":"0017000E4C000011","asm":"r"},{"n":"Name","sv":"Bt","asm":"r"}],"bn":"Info"},"bn":"0007000E4CAB1232","ver":1}
+                   appendDataLogWisesnail( infoObj, connType ); // <DataLog> Bt/API-GW -> <NET_Interface_Type>/API-GW>
+                   // {"Info":{"e":[{"n":"SenHubList","sv":"0017000E4C000011","asm":"r"},{"n":"Name","sv":"Bt","asm":"r"}],"bn":"Info"},"bn":"0007000E4CAB1232","ver":1,"dataFlow":"0007000E4CAB1232/API-GW","seq":"2_1530252638454"}
 
-                   appendDataLog(infoObj); // <DataLog>
                    advDataflowWrite( 'Report', infoObj.seq, infoObj.dataFlow, '' );
 
                    connectivity.dev_info = JSON.stringify(infoObj);
@@ -771,7 +791,11 @@ function connectivityMapUpdate( messageType, vgw_id, osInfo, layer, connType, in
                    if ( getOSType( connectivity.os_info ) === OS_TYPE.NONE_IP_BASE ){
                      var eventMsgObj={};
                      eventMsgObj.IoTGW = {};
-                     appendDataLog(eventMsgObj.IoTGW); // <DataLog>                     
+                     //{"Info":{"e":[{"n":"SenHubList","sv":"0017000E4C000011","asm":"r"},{"n":"Name","sv":"Bt","asm":"r"}],"bn":"Info"},"bn":"0007000E4CAB1232","ver":1}
+                     appendDataLogWisesnail(eventMsgObj.IoTGW, connType ); // <DataLog>       
+                     // {"Info":{"e":[{"n":"SenHubList","sv":"0017000E4C000011","asm":"r"},{"n":"Name","sv":"Bt","asm":"r"}],"bn":"Info"},"bn":"0007000E4CAB1232","ver":1,"dataFlow":"0007000E4CAB1232/API-GW","seq":"2_1530252638454"}              
+                     append_opTS(eventMsgObj.IoTGW); // <opTS>
+
                      eventMsgObj.IoTGW[connType]={}; 
                      eventMsgObj.IoTGW[connType][device_id]={};
                      eventMsgObj.IoTGW[connType][device_id]= JSON.parse(connectivity.dev_info);
@@ -809,6 +833,24 @@ function connectivityMapUpdate( messageType, vgw_id, osInfo, layer, connType, in
    return;    
 }
 
+// "opTS": {"$date": 1510044371815},    
+function append_opTS( msg )
+{
+  if( typeof msg === 'undefined') return -1;
+
+  // dataFlow
+  if( typeof msg.opTS === 'undefined')
+  {
+      msg.opTS = {};
+      msg.opTS.$date = getMSTime();
+  }else{
+    if( typeof msg.ver === 'undefined' )
+      msg.opTS.$date = getMSTime();
+    else if ( msg.ver === 1 )
+      msg.opTS.$date = getMSTime();
+  }
+  return 0;
+}
 
 function sensorHubMapUpdate(messageType, device_id, message){
           
@@ -850,11 +892,17 @@ function sensorHubMapUpdate(messageType, device_id, message){
         if ( MSG_TYPE.SENSORHUB_INFO_SPEC === messageType){
           message = message.replace(/[\u0000-\u0019]+/g,""); // eric add to remove not viewable syntax 
 
-	  var keyStr = '';
+	        var keyStr = '';
           var fullInfoObj = JSON.parse(message);
           
           // <DataLog>
-          appendDataLog(fullInfoObj.susiCommData.infoSpec.SenHub);
+          //{"SenData":{"e":[{"n":"GPIO2","u":"","bv":false,"min":false,"max":true,"asm":"r","type":"b"}],"bn":"SenData"},"Info":{"e":[],"bn":"Info"},"Net":{"e":[],"bn":"Net"},"Action":{"e":[],"bn":"Action"},"ver":1}
+          var prefixePath = device_id + '/' + sensorhub.conn_type;
+          appendDataLogWisesnail(fullInfoObj.susiCommData.infoSpec.SenHub, prefixePath); // <SenHubDeviceID>/<NetType>/API-GW
+
+          append_opTS(fullInfoObj.susiCommData.infoSpec.SenHub); // < opTS >
+
+          //{"SenData":{"e":[{"n":"GPIO2","u":"","bv":false,"min":false,"max":true,"asm":"r","type":"b"}],"bn":"SenData"},"Info":{"e":[],"bn":"Info"},"Net":{"e":[],"bn":"Net"},"Action":{"e":[],"bn":"Action"},"ver":1,"dataFlow":"<DevID>/<NetType>/API-GW","seq":"9_1530257498095"}
           advDataflowWrite('Capability', fullInfoObj.susiCommData.infoSpec.SenHub.seq, fullInfoObj.susiCommData.infoSpec.SenHub.dataFlow, '' );
           sensorhub.dev_info_spec = JSON.stringify(fullInfoObj); // append data log msg          
           //sensorhub.dev_info_spec = message;
@@ -862,7 +910,7 @@ function sensorHubMapUpdate(messageType, device_id, message){
           var eventMsgObj = JSON.parse(JSON.stringify(fullInfoObj.susiCommData.infoSpec));
 
           buildFullInfoObj(false, keyStr, fullInfoObj);
-	  sensorhub.dev_full_info = JSON.stringify(fullInfoObj.susiCommData.infoSpec);
+	        sensorhub.dev_full_info = JSON.stringify(fullInfoObj.susiCommData.infoSpec);
           //advLogWrite(LOG_DEBUG, '-----------');
           //advLogWrite(LOG_DEBUG, 'sensorhub.dev_full_info ==== ' + sensorhub.dev_full_info);
           eventMsgObj.agentID = device_id;
@@ -881,18 +929,31 @@ function sensorHubMapUpdate(messageType, device_id, message){
           //advLogWrite(LOG_DEBUG, '-----------');
         }        
         if ( MSG_TYPE.SENSORHUB_INFO === messageType){ 
-	  var keyStr = '';
+	        var keyStr = '';
           var partialInfoObj = JSON.parse(message);         
-          var fullInfoObj = JSON.parse(sensorhub.dev_full_info);
+          var fullInfoObj    = JSON.parse(sensorhub.dev_full_info);
+
+          if( typeof fullInfoObj === 'undefined' ) return;
 
           // <DataLog>
-          appendDataLog(partialInfoObj.susiCommData.data.SenHub);
+          // {"SenData":{"e":[{"n":"GPIO2","bv":false}],"bn":"SenData"},"Info":{"e":[],"bn":"Info"},"Net":{"e":[],"bn":"Net"},"Action":{"e":[],"bn":"Action"},"ver":1}
+          var prefixePath = device_id + '/' + sensorhub.conn_type;
+          appendDataLogWisesnail( partialInfoObj.susiCommData.data.SenHub, prefixePath); // <SenHubDeviceID>/<NetType>/API-GW       
+          append_opTS( partialInfoObj.susiCommData.data.SenHub ); // < opTS >
+   
+          //{"SenData":{"e":[{"n":"GPIO2","bv":false}],"bn":"SenData"},"Info":{"e":[],"bn":"Info"},"Net":{"e":[],"bn":"Net"},"Action":{"e":[],"bn":"Action"},"ver":1,"dataFlow":"<DevID>/<NetType>/API-GW","seq":"13_1530258505588"}
           advDataflowWrite('Report', partialInfoObj.susiCommData.data.SenHub.seq, partialInfoObj.susiCommData.data.SenHub.dataFlow, '' );
 
-          if( typeof fullInfoObj.SenHub !== 'undefined')
-          {
-            fullInfoObj.SenHub.dataFlow = partialInfoObj.susiCommData.data.SenHub.dataFlow;
-            fullInfoObj.SenHub.seq = partialInfoObj.susiCommData.data.SenHub.seq;
+          try{
+            if( typeof fullInfoObj.SenHub != 'undefined')
+            {
+              fullInfoObj.SenHub.dataFlow = partialInfoObj.susiCommData.data.SenHub.dataFlow;
+              fullInfoObj.SenHub.seq = partialInfoObj.susiCommData.data.SenHub.seq;
+              fullInfoObj.SenHub.opTS = partialInfoObj.susiCommData.data.SenHub.opTS;
+            }
+          }catch(e){
+            advLogWrite( LOG_ERROR, 'fullInfoObj.SenHub is null'  );
+            return;
           }
           sensorhub.dev_info = JSON.stringify(partialInfoObj); // append data log msg
           //sensorhub.dev_info = message;          
@@ -958,7 +1019,9 @@ function sendIPBaseConnectivityInfoEvent(){
 
   var eventMsgObj={};
   eventMsgObj.IoTGW = {};
-  appendDataLog(eventMsgObj.IoTGW); // <DataLog>  
+  appendDataLogWisesnail(eventMsgObj.IoTGW); // <DataLog> Ethernet uses "API-GW" as root of data source
+  append_opTS(eventMsgObj.IoTGW); // <opTS>
+
   advDataflowWrite( 'Capability', eventMsgObj.IoTGW.seq, eventMsgObj.IoTGW.dataFlow, '' ); 
 
   eventMsgObj.IoTGW[connType]={};

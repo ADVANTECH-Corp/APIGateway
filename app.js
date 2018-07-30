@@ -16,6 +16,10 @@ var http = require('http');
 var appRouter = require("./routes/routes.js");
 var WebSocketServer = require('ws').Server;
 
+// authorization
+//const passport = require('passport')
+//const session = require('express-session')
+
 var ServerPort = 3000;
 var enableAuth = 0;
 
@@ -58,9 +62,9 @@ app.use(function(req, res, next ) {
 
 	if( enableAuth == 0 )
 		next();
-	else if (!user || !user.name || !user.pass) {
+	else if (!user || !user.name ) {
 		return unauthorized(res);
-	} else if ( user.name === '111' ) { 
+	} else if ( user.name === 'test' && user.pass === '1111') { 
 	        // && bcrypt.compareSync(user.pass, apiResource.server_config.login.password)) {
 		   	//user.pass === apiResource.server_config.login.password) {
 		next();
@@ -82,10 +86,16 @@ app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
 // router service path
 app.use('/restapi', router);
 
-app.use(express.static(__dirname + '/views'));
+//app.use(express.static(__dirname + '/views'));
 
+// static files ( index.html, login.html, images, css...) and front&back end packages
+app.use(express.static(__dirname + '/public')); 
 
+// jquery
+app.use('/jquery', express.static(__dirname + '/node_modules/jquery/dist/'));
 
+// bootstrap
+app.use('/bootstrap', express.static(__dirname + 'node_modules/bootstrap/dist/js/'));
 
 
 // Create HTTP Server
