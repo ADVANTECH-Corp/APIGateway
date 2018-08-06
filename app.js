@@ -92,10 +92,10 @@ app.use('/restapi', router);
 app.use(express.static(__dirname + '/public')); 
 
 // jquery
-app.use('/jquery', express.static(__dirname + '/node_modules/jquery/dist/'));
+//app.use('/jquery', express.static(__dirname + '/node_modules/jquery/dist/'));
 
 // bootstrap
-app.use('/bootstrap', express.static(__dirname + 'node_modules/bootstrap/dist/js/'));
+//app.use('/bootstrap', express.static(__dirname + '/node_modules/bootstrap/dist/'));
 
 
 // Create HTTP Server

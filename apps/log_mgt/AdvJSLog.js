@@ -32,8 +32,8 @@ var WSNEVENTS = [];
 
 var g_mVersion = "1.0.1";
 var g_mDescription = "The eLog is log service of EdgeSense."
-var g_Mgt = {mgt:{info:{e:[{n:'version',sv:g_mVersion,asm:'r'},{n:'description',sv:g_mDescription,asm:'r'}]},
-                   config:{e:[{n:'enable-data-flow',bv:false, asm:'rw'}]}}};
+var g_Mgt = {info:{e:[{n:'version',sv:g_mVersion,asm:'r'},{n:'description',sv:g_mDescription,asm:'r'}]},
+                   config:{e:[{n:'enable-data-flow',bv:false, asm:'rw'}]}};
 
 var g_eEndPoints = ["mgt"]
 

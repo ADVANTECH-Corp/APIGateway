@@ -30,6 +30,7 @@ var APIs = {
     websktFn: websktFn,
     websktCb: undefined,
     wsclients:  hAppCtl.wsclients,    
+    //webCfg: hAppCtl.webCfg,
 };
 
 

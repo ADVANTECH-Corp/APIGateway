@@ -49,12 +49,22 @@ const EVENT_ID = {
     EVENT_NOTIFY:   7
 };
 
-var g_mVersion = "1.0.1";
-var g_mDescription = "Service is a manager of services of EdgeSense"
-var g_Mgt = {mgt:{info:{e:[{n:'version',sv:g_mVersion,asm:'r'},{n:'description',sv:g_mDescription,asm:'r'}]},
-                   config:{e:[{n:'enable-data-flow',bv:false, asm:'rw'}]}}};
 
-var g_eEndPoints = ["mgt"]; // dynamic service endpoint list
+var appInfo =
+{
+    version: "1.0.1",
+    description: "Service is a manager of services of EdgeSense",
+    endpoints: ["mgt"],
+    //expend: {config:{e:[{n:'enable-data-flow',bv:false, asm:'rw'}]}}
+};
+
+var g_Mgt = {info:{e:[{n:'version',sv:appInfo.version,asm:'r'},{n:'description',sv:appInfo.description,asm:'r'}]},
+             config:{e:[{n:'enable-data-flow',bv:false, asm:'rw'}]}};
+
+//var g_eEndPoints = ["mgt"]; // dynamic service endpoint list
+
+// web
+//var webCfg = {Group:[],Name:'Service'};
 
 // service global variables
 var g_ServiceMap = new HashMap();
@@ -79,7 +89,7 @@ var getUriType = function ( uri )
 
     if ( category === 'list' )
         return URI_TYPE.LIST ;
-    else if ( category === g_eEndPoints[URI_TYPE.MGT] || typeof category === 'undefined' )
+    else if ( category === appInfo.endpoints[URI_TYPE.MGT] || typeof category === 'undefined' )
         return URI_TYPE.MGT ;
     else if ( typeof category !== 'undefined' )
         return URI_TYPE.SERVICE;      
@@ -120,7 +130,7 @@ var wsnget = function( uri, inParam, outData ) {
       case URI_TYPE.LIST:
       {        
         advLogWrite(LOG_DEBUG,'URI_TYPE.LIST ===============');          
-        getListRESTful( uri, outData, g_eEndPoints );
+        getListRESTful( uri, outData, appInfo.endpoints );
         break;
       }
       case URI_TYPE.MGT:
@@ -333,15 +343,15 @@ function sendEvent( eventID /* EVENT_ID */, name /*HDD_PMQ"*/ , msg /* JSON Obj 
 
 function addToEndPoint( service_id )
 {
-    for ( var i = 0; i < g_eEndPoints.length; i++ )
+    for ( var i = 0; i < appInfo.endpoints.length; i++ )
     {
-        //if( service_id == g_eEndPoints)
+        //if( service_id == appInfo.endpoints)
     }
 }
 
 function addService( service_id /* HDD_PMQ*/ , info_spec /* JSON Obj of capability */ )
 {
-    // 1. add to g_eEndPoints
+    // 1. add to appInfo.endpoints
     addToEndPoint( service_id );
     // 2. send "eRegisterService" event to websocket clients
     sendEvent( EVENT_ID.UNREG, service_id, info_spec ); 
@@ -351,7 +361,7 @@ function removeService( service_id ){
     var msg = {};
     // 1. remove from g_ServiceMap
     g_ServiceMap.remove(service_id);    
-    // 2. remove from g_eEndPoints
+    // 2. remove from appInfo.endpoints
 
     // 3. send "eDeregisterService" event -> websocket   
     sendEvent( EVENT_ID.UNREG, service_id, msg ); 
@@ -450,6 +460,7 @@ module.exports = {
   events: WSNEVENTS,
   addListener: addListener,
   wsclients: wsclients,
+  //webCfg: webCfg,
 };
 //      ============== <Export> ==============
 

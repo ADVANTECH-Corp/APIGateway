@@ -23,8 +23,9 @@ global.getListRESTful = function( uri, outObj , eEndPoints )
 
     if ( path === '' || path === '/' || path === "/e" ){
         var data = {};
-        data.list = {};
-        data.list.e = getAllEndpoint( eEndPoints ); 
+        //data.list = {};
+        //data.list.e = getAllEndpoint( eEndPoints ); 
+        data.e = getAllEndpoint( eEndPoints ); 
         outObj.ret = JSON.stringify(data);
         ret = STATUS.OK;
     }

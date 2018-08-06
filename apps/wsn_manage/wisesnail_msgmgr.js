@@ -2,6 +2,7 @@
 var STATUS = require('../../inc/statusCode.js').STATUS_CODE;
 var advlog = require('../log_mgt/AdvJSLog.js');
 var servicemgr = require('../service/service_mgr.js');
+var api_utility = require('../../inc/api-gw_utility.js');
 var Uuid = require('node-uuid');
 var Mqtt = require('mqtt');
 var HashMap = require('hashmap').HashMap;
@@ -22,6 +23,15 @@ const HEART_BEAT_TIMEOUT = 60000; // 60 seconds
 const HEART_BEAT_CHECK_INTERVAL = 5000; //5 seconds
 const groupName = 'WSNManage';
 var routers = [{"path":"*","action":"GET,PUT"}];
+
+
+var g_mVersion = "1.0.5";
+var g_mDescription = "WSN is a manager of Wireless Sensor Netowkr"
+var g_Mgt = {info:{e:[{n:'version',sv:g_mVersion,asm:'r'},{n:'description',sv:g_mDescription,asm:'r'}]}};
+
+var g_eEndPoints = ["mgt", "Connectivity", "SenHub"]; // dynamic service endpoint list
+
+var webCfg = {Group:[],Name:'Service'};
 
 var Client = 'undefined';
 
@@ -93,9 +103,12 @@ const OS_TYPE = {
 		};
 
 const URI_TYPE = { 
-                  CONNECTIVITY: 1, 
-		  SENSORHUB: 2
-		};
+  MGT:       0,        // < Group>/mgt
+  LIST:   1000,        // <Group>/list  
+  CONNECTIVITY: 1, 
+  SENSORHUB: 2,
+
+};
 
 const DATATYPE = {
                   UNKNOWN: 0, 
@@ -1613,10 +1626,13 @@ function getUriType( uri ){
   if ( category === 'Connectivity' ){
     return URI_TYPE.CONNECTIVITY ;
   }
-
-  if ( category === 'SenHub' ){
+  else if ( category === 'SenHub' ){
     return URI_TYPE.SENSORHUB ;
   }
+  else if ( category === 'list' )
+  return URI_TYPE.LIST ;
+  else if ( category === g_eEndPoints[URI_TYPE.MGT] || typeof category === 'undefined' )
+  return URI_TYPE.MGT ;  
 
   return 'null';
 }
@@ -1839,13 +1855,44 @@ function getSensorHubRESTful(uri, outObj){
 
 }
 
+var getMgtRESTful = function( uri, outObj )
+{    
+    var path = uri.replace(/^mgt/g,'');
+    var ret = STATUS.NOT_FOUND;
+    
+    advLogWrite( LOG_DEBUG, 'getMgtRESTful uri = ' + path );
+
+    if ( path === '' || path === '/' ){ // Capability with data
+        outObj.ret = JSON.stringify(g_Mgt);
+        ret = STATUS.OK;
+    }else{
+        outObj.ret = queryAdvJSONbyPath(uri, g_Mgt);
+        if( typeof outObj.ret !== 'undefined' )
+            ret = STATUS.OK; 
+    }
+
+    return ret;    
+}
 
 var wsnget = function( uri, inParam, outData ) {
    
-  advLogWrite(LOG_DEBUG, 'uri = ' + uri);
+  //advLogWrite(LOG_DEBUG, 'uri = ' + uri);
+  console.log('uri = ' + uri);
   var uriType = getUriType ( uri );
 
   switch( uriType ){
+    case URI_TYPE.LIST:
+    {        
+      advLogWrite(LOG_DEBUG,'URI_TYPE.LIST ===============');          
+      getListRESTful( uri, outData, g_eEndPoints );
+      break;
+    }    
+    case URI_TYPE.MGT:
+    {
+      advLogWrite(LOG_DEBUG,'URI_TYPE.MGT ===============');
+      getMgtRESTful( uri, outData );
+      break;
+    }    
     case URI_TYPE.CONNECTIVITY:
     {
 
