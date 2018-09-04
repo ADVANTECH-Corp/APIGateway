@@ -182,7 +182,7 @@ module.exports = {
 var path = require("path");
 var loginfo = 'undefined';
 var seq_counter = 0;
-var g_enabllog = 0;
+var g_enabllog = 1;
 
 // ElasticSearch
 var g_els = require('./els_sdk.js');
@@ -306,54 +306,32 @@ global.getISOTime = function()
     return new Date().toISOString().replace(/Z/,'');     // delete the dot and everything after    
 }  
 
-global.appendDataLogWisesnail = function( msg, prePath /* <SenHubID>/LoRa */ )
+global.appendDataLog = function( msg )
 {
   if( typeof msg === 'undefined') return -1;
 
   // dataFlow
   if( typeof msg.dataFlow === 'undefined')
+      msg.dataFlow = global.AppName;  // From this node
+  else
   {
-      msg.dataFlow = '';
-      if( typeof prePath  !== 'undefined')
-        msg.dataFlow = prePath + '/' +global.AppName;
-      else
-        msg.dataFlow = prePath + '/' +global.AppName;
-
-  }else{
-
     var path = msg.dataFlow + '/' + global.AppName;
     msg.dataFlow = path;
   }
     
-  // seq
-  if( typeof msg.seq == 'undefined')
+
+  // seq & srcTs
+  if( typeof msg.seq == 'undefined' )
   {
+    var srcTs = getMSTime();      
     ++seq_counter;
-    msg.seq = seq_counter + '_' + getMSTime();   // index_time(long)
+    msg.seq = seq_counter + '_' + srcTs;   
+    msg.srcTs = srcTs; 
   }
+
+
   return 0;
 }
-
-global.appendDataLog = function( msg )
-{
-  // dataFlow
-  if( typeof msg.dataFlow === 'undefined')
-  {
-      msg.dataFlow = '';
-      msg.dataFlow = global.AppName;
-  }else{
-    var path = msg.dataFlow + '/' + global.AppName;
-    msg.dataFlow = path;
-  }
-    
-  // seq
-  if( typeof msg.seq == 'undefined')
-  {
-    ++seq_counter;
-    msg.seq = seq_counter + '_' + getMSTime();   // index_time(long)
-  }
-}
-
 
 
 global.advDataflowWrite = function ( type, seq, dataFlow, msg )
@@ -364,7 +342,9 @@ global.advDataflowWrite = function ( type, seq, dataFlow, msg )
 
     var data = '';
 
-    var time = getISOTime();
+    //var time = getISOTime();
+    var ts = getMSTime();
+    var time = new Date(ts).toISOString().replace(/Z/,'');
 
     data = '[' + time +'] ['+global.AppName+'] ['+ type + '] ['+seq+'] ['+dataFlow+'] ['+msg+']';
 
@@ -381,10 +361,12 @@ global.advDataflowWrite = function ( type, seq, dataFlow, msg )
 
         var body = {};
         body.date = time;
+        body.ts = ts;
         body.node = global.AppName; 
         body.type = type;
         body.seq = seq;
         body.srcTs = ts[1]; // 123_13242424
+        body.srcName = _index;
         body.dataFlow = dataFlow;
         body.reserved = msg;
         //console.log('_index= '+_index.toLowerCase() + ' body= ' + JSON.stringify(body) );

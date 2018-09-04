@@ -164,7 +164,7 @@ function addHostConnectivity(){
   // <DataLog>
   // {"Info":{"e":[{"n":"Name","sv":"Ethernet","asm":"r"}],"bn":"Info"},"bn":"0007000BAB838404","ver":1}
   //appendDataLog(infoSpecObj); 
-  appendDataLogWisesnail(infoSpecObj); // Ethernet uses "API-GW" as root of data source
+  appendDataLog(infoSpecObj); // Ethernet uses "API-GW" as root of data source
   // {"Info":{"e":[{"n":"Name","sv":"Ethernet","asm":"r"}],"bn":"Info"},"bn":"0007000BAB838404","ver":1,"dataFlow":"0007000BAB838404/API-GW","seq":"1_1530251504961"}
 
   advDataflowWrite( 'Capability', infoSpecObj.seq, infoSpecObj.dataFlow, '' );
@@ -744,7 +744,7 @@ function connectivityMapUpdate( messageType, vgw_id, osInfo, layer, connType, in
                    connectivity.conn_id   = device_id; 
                    connectivity.conn_type = connType;
                    //{"Info":{"e":[{"n":"SenHubList","sv":"0017000E4C000011","asm":"r"},{"n":"Name","sv":"Bt","asm":"r"}],"bn":"Info"},"bn":"0007000E4CAB1232","ver":1}
-                   appendDataLogWisesnail(infoObj, connType); // <DataLog> Bt/API-GW -> <NET_Type>/API-GW>
+                   appendDataLog(infoObj); // <DataLog> Bt/API-GW -> <NET_ID>/API-GW>
                    // {"Info":{"e":[{"n":"SenHubList","sv":"0017000E4C000011","asm":"r"},{"n":"Name","sv":"Bt","asm":"r"}],"bn":"Info"},"bn":"0007000E4CAB1232","ver":1,"dataFlow":"0007000E4CAB1232/API-GW","seq":"2_1530252638454"}
 
                    advDataflowWrite( 'Capability', infoObj.seq, infoObj.dataFlow, '' );
@@ -780,7 +780,7 @@ function connectivityMapUpdate( messageType, vgw_id, osInfo, layer, connType, in
                    var tmpInfoSpecObj = JSON.parse(connectivity.dev_info_spec);
                    getDeviceCapability(tmpInfoSpecObj, infoObj);
                    //{"Info":{"e":[{"n":"SenHubList","sv":"0017000E4C000011","asm":"r"},{"n":"Name","sv":"Bt","asm":"r"}],"bn":"Info"},"bn":"0007000E4CAB1232","ver":1}
-                   appendDataLogWisesnail( infoObj, connType ); // <DataLog> Bt/API-GW -> <NET_Interface_Type>/API-GW>
+                   appendDataLog( infoObj ); // <DataLog> Bt/API-GW -> <NetID>/API-GW>
                    // {"Info":{"e":[{"n":"SenHubList","sv":"0017000E4C000011","asm":"r"},{"n":"Name","sv":"Bt","asm":"r"}],"bn":"Info"},"bn":"0007000E4CAB1232","ver":1,"dataFlow":"0007000E4CAB1232/API-GW","seq":"2_1530252638454"}
 
                    advDataflowWrite( 'Report', infoObj.seq, infoObj.dataFlow, '' );
@@ -805,7 +805,7 @@ function connectivityMapUpdate( messageType, vgw_id, osInfo, layer, connType, in
                      var eventMsgObj={};
                      eventMsgObj.IoTGW = {};
                      //{"Info":{"e":[{"n":"SenHubList","sv":"0017000E4C000011","asm":"r"},{"n":"Name","sv":"Bt","asm":"r"}],"bn":"Info"},"bn":"0007000E4CAB1232","ver":1}
-                     appendDataLogWisesnail(eventMsgObj.IoTGW, connType ); // <DataLog>       
+                     appendDataLog( eventMsgObj.IoTGW ); // <DataLog>       
                      // {"Info":{"e":[{"n":"SenHubList","sv":"0017000E4C000011","asm":"r"},{"n":"Name","sv":"Bt","asm":"r"}],"bn":"Info"},"bn":"0007000E4CAB1232","ver":1,"dataFlow":"0007000E4CAB1232/API-GW","seq":"2_1530252638454"}              
                      append_opTS(eventMsgObj.IoTGW); // <opTS>
 
@@ -910,8 +910,8 @@ function sensorHubMapUpdate(messageType, device_id, message){
           
           // <DataLog>
           //{"SenData":{"e":[{"n":"GPIO2","u":"","bv":false,"min":false,"max":true,"asm":"r","type":"b"}],"bn":"SenData"},"Info":{"e":[],"bn":"Info"},"Net":{"e":[],"bn":"Net"},"Action":{"e":[],"bn":"Action"},"ver":1}
-          var prefixePath = device_id + '/' + sensorhub.conn_type;
-          appendDataLogWisesnail(fullInfoObj.susiCommData.infoSpec.SenHub, prefixePath); // <SenHubDeviceID>/<NetType>/API-GW
+
+          appendDataLog( fullInfoObj.susiCommData.infoSpec.SenHub ); // <SenHubID>/API-GW
 
           append_opTS(fullInfoObj.susiCommData.infoSpec.SenHub); // < opTS >
 
@@ -951,7 +951,7 @@ function sensorHubMapUpdate(messageType, device_id, message){
           // <DataLog>
           // {"SenData":{"e":[{"n":"GPIO2","bv":false}],"bn":"SenData"},"Info":{"e":[],"bn":"Info"},"Net":{"e":[],"bn":"Net"},"Action":{"e":[],"bn":"Action"},"ver":1}
           var prefixePath = device_id + '/' + sensorhub.conn_type;
-          appendDataLogWisesnail( partialInfoObj.susiCommData.data.SenHub, prefixePath); // <SenHubDeviceID>/<NetType>/API-GW       
+          appendDataLog( partialInfoObj.susiCommData.data.SenHub ); // <SenHubID>/API-GW       
           append_opTS( partialInfoObj.susiCommData.data.SenHub ); // < opTS >
    
           //{"SenData":{"e":[{"n":"GPIO2","bv":false}],"bn":"SenData"},"Info":{"e":[],"bn":"Info"},"Net":{"e":[],"bn":"Net"},"Action":{"e":[],"bn":"Action"},"ver":1,"dataFlow":"<DevID>/<NetType>/API-GW","seq":"13_1530258505588"}
@@ -1032,7 +1032,7 @@ function sendIPBaseConnectivityInfoEvent(){
 
   var eventMsgObj={};
   eventMsgObj.IoTGW = {};
-  appendDataLogWisesnail(eventMsgObj.IoTGW); // <DataLog> Ethernet uses "API-GW" as root of data source
+  appendDataLog(eventMsgObj.IoTGW); // <DataLog> Ethernet uses "API-GW" as root of data source
   append_opTS(eventMsgObj.IoTGW); // <opTS>
 
   advDataflowWrite( 'Capability', eventMsgObj.IoTGW.seq, eventMsgObj.IoTGW.dataFlow, '' ); 
