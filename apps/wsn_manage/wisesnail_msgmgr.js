@@ -392,10 +392,14 @@ var mqttMessageCallback = function (topic, message){
           if ( SensorHubMap.has(device_id) === true ) {
             var sensorhub = SensorHubMap.get(device_id);
             sensorhub.connect = message.toString();
-	    var osType = getOSType( sensorhub.os_info );
-	    SensorHubMap.remove(device_id);
-	    if( osType === OS_TYPE.IP_BASE )
-	            sendIPBaseConnectivityInfoEvent();
+	          var osType = getOSType( sensorhub.os_info );
+	          SensorHubMap.remove(device_id);
+	          if( osType === OS_TYPE.IP_BASE )
+              		sendIPBaseConnectivityInfoEvent();
+              
+                var eventMsgObj = JSON.parse(message);       
+                var wsnEvent = WSNEVENTS[3].event;  
+                eventEmitterObj.emit(groupName, groupName, wsnEvent, eventMsgObj);       
           }
       }
     case MSG_TYPE.SENSORHUB_INFO_SPEC:
