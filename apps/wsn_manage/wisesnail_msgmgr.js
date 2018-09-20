@@ -1007,7 +1007,7 @@ function getMsgType(topic, jsonObj){
     }
   
     if ( topic_arr[4] === 'deviceinfo'){   
-        if ( jsonObj.susiCommData.commCmd === 2055 ){
+        if ( typeof jsonObj.susiCommData.commCmd !== 'undefined' && jsonObj.susiCommData.commCmd === 2055 ){
             if ( typeof jsonObj.susiCommData.data.IoTGW !== 'undefined' ){
                 return MSG_TYPE.VGW_INFO;
             }  
