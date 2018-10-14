@@ -51,8 +51,7 @@ function multisend (args) {
 
 function start (args) {
   args = minimist(args, {
-    string: ['hostname', 'username', 'password', 'key', 'cert', 'ca', 'message'],
-    integer: ['port', 'qos'],
+    string: ['hostname', 'username', 'password', 'key', 'cert', 'ca', 'message', 'clientId', 'i', 'id'],
     boolean: ['stdin', 'retain', 'help', 'insecure', 'multiline'],
     alias: {
       port: 'p',
@@ -74,7 +73,8 @@ function start (args) {
       host: 'localhost',
       qos: 0,
       retain: false,
-      topic: ''
+      topic: '',
+      message: ''
     }
   })
 
@@ -118,7 +118,7 @@ function start (args) {
   }
 
   args.topic = (args.topic || args._.shift()).toString()
-  args.message = (args.message || args._.shift() || '').toString() || ''
+  args.message = (args.message || args._.shift()).toString()
 
   if (!args.topic) {
     console.error('missing topic\n')
@@ -130,7 +130,7 @@ function start (args) {
       multisend(args)
     } else {
       process.stdin.pipe(concat(function (data) {
-        args.message = data.toString().trim()
+        args.message = data
         send(args)
       }))
     }
