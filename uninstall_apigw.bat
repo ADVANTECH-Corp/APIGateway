@@ -6,13 +6,13 @@ CD %ROOTDIR%
 :remove_meta
 @REM delete meta files while using node-windows
 
-@IF EXIST daemon\apigateway.exe (
-  @DEL /Q /S /F daemon\apigateway.exe
+@IF EXIST daemon\apigw.exe (
+  @DEL /Q /S /F daemon\apigw.exe
   goto remove_meta
 )
 
-@IF EXIST daemon\apigateway.exe.config (
-  @DEL /Q /S /F daemon\apigateway.exe.config
+@IF EXIST daemon\apigw.exe.config (
+  @DEL /Q /S /F daemon\apigw.exe.config
   goto remove_meta
 )
 

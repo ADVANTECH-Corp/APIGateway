@@ -11,7 +11,7 @@
     <ROW Property="Manufacturer" Value="Advantech"/>
     <ROW Property="ProductCode" Value="1033:{56FC834E-401E-42C8-AC52-367AD6E4ECB6} " Type="16"/>
     <ROW Property="ProductLanguage" Value="1033"/>
-    <ROW Property="ProductName" Value="APIGateway"/>
+    <ROW Property="ProductName" Value="API-GW"/>
     <ROW Property="ProductVersion" Value="2.0.6" Type="32"/>
     <ROW Property="SecureCustomProperties" Value="OLDPRODUCTS;AI_NEWERPRODUCTFOUND;AI_SETUPEXEPATH;SETUPEXEDIR"/>
     <ROW Property="UpgradeCode" Value="{1226BC90-92B3-49B0-B82B-736295EF5D9E}"/>
@@ -3938,7 +3938,7 @@
     <ROW File="zuul.yml_3" Component_="npmignore_55" FileName="ZUUL~1.YML|.zuul.yml" Attributes="2" SourcePath="..\..\node_modules\socket.io\node_modules\socket.io-parser\.zuul.yml" SelfReg="false" NextFile="bench.js_1"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.BuildComponent">
-    <ROW BuildKey="DefaultBuild" BuildName="DefaultBuild" BuildOrder="1" BuildType="1" PackageFolder="..\output" Languages="en" InstallationType="4" CabsLocation="1" PackageType="1" FilesInsideExe="true" ExtractionFolder="[AppDataFolder][|Manufacturer]\[|ProductName] [|ProductVersion]\install" UseLargeSchema="true" ExeName="[|ProductName]_[|ProductVersion]" UACExecutionLevel="2"/>
+    <ROW BuildKey="DefaultBuild" BuildName="DefaultBuild" BuildOrder="1" BuildType="1" PackageFolder="..\output" Languages="en" InstallationType="4" CabsLocation="1" PackageType="1" FilesInsideExe="true" ExtractionFolder="[AppDataFolder][|Manufacturer]\[|ProductName] [|ProductVersion]\install" UseLargeSchema="true" ExeName="[|ProductName]-[|ProductVersion]" UACExecutionLevel="2"/>
     <ATTRIBUTE name="CurrentBuild" value="DefaultBuild"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.DictionaryComponent">

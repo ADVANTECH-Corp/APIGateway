@@ -2,9 +2,9 @@ var Service = require('node-windows').Service;
 
 // Create a new service object
 var svc = new Service({
-  name:'APIGateway',
-  description: 'APIGateway',
-  script: 'C:\\Program Files (x86)\\Advantech\\APIGateway\\app.js',
+  name:'API-GW',
+  description: 'API-GW',
+  script: 'C:\\Program Files (x86)\\Advantech\\API-GW\\app.js',
   env:{
     name: "NODE_ENV",
     value: "production"
