@@ -24,11 +24,10 @@ check service status
 ## Development
 
 ### Change Version
-- edit app.js
-global.AppVersion = 'x.x.x';
+1. Edit app.js
+> global.AppVersion = 'x.x.x';
 
-- edit ePack_conf/ePack_custom.bash
-PROJECT_VER=x.x.x
+2. Edit ePack_conf/ePack_custom.bash
+> PROJECT_VER=x.x.x
 
-- open installer/project/APIGateway.aip using Advanced Installer
-edit ProductVersion
+3. Using Advanced Installer to open installer/project/APIGateway.aip and edit ProductVersion.
