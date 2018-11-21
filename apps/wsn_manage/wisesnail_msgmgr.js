@@ -402,6 +402,7 @@ var mqttMessageCallback = function (topic, message){
                 eventEmitterObj.emit(groupName, groupName, wsnEvent, eventMsgObj);       
           }
       }
+      break;
     case MSG_TYPE.SENSORHUB_INFO_SPEC:
       {
          console.log('[' + device_id + ']' + ': receive SENSORHUB_INFO_SPEC');
