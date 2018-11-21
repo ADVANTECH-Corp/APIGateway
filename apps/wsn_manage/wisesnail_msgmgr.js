@@ -286,7 +286,7 @@ var mqttMessageCallback = function (topic, message){
       if ( ServiceMap.has(device_id) === false ) {
         ServiceMap.set(device_id, device_id );    
       }  
-      
+      break;
     }
     case MSG_TYPE.VGW_DISCONNECT:
       {
@@ -401,8 +401,8 @@ var mqttMessageCallback = function (topic, message){
                 var wsnEvent = WSNEVENTS[3].event;  
                 eventEmitterObj.emit(groupName, groupName, wsnEvent, eventMsgObj);       
           }
+      	  break;	      
       }
-      break;
     case MSG_TYPE.SENSORHUB_INFO_SPEC:
       {
          console.log('[' + device_id + ']' + ': receive SENSORHUB_INFO_SPEC');
