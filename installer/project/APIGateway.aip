@@ -9,10 +9,10 @@
     <ROW Property="ALLUSERS" Value="1"/>
     <ROW Property="ARPCOMMENTS" Value="This installer database contains the logic and data required to install [|ProductName]." ValueLocId="*"/>
     <ROW Property="Manufacturer" Value="Advantech"/>
-    <ROW Property="ProductCode" Value="1033:{56FC834E-401E-42C8-AC52-367AD6E4ECB6} " Type="16"/>
+    <ROW Property="ProductCode" Value="1033:{9DFE4E92-CB31-407B-A285-4CB0E15E44C1} " Type="16"/>
     <ROW Property="ProductLanguage" Value="1033"/>
     <ROW Property="ProductName" Value="API-GW"/>
-    <ROW Property="ProductVersion" Value="2.0.6" Type="32"/>
+    <ROW Property="ProductVersion" Value="2.0.7" Type="32"/>
     <ROW Property="SecureCustomProperties" Value="OLDPRODUCTS;AI_NEWERPRODUCTFOUND;AI_SETUPEXEPATH;SETUPEXEDIR"/>
     <ROW Property="UpgradeCode" Value="{1226BC90-92B3-49B0-B82B-736295EF5D9E}"/>
     <ROW Property="WindowsType9X" MultiBuildValue="DefaultBuild:Windows 9x/ME" ValueLocId="-"/>

@@ -1,4 +1,4 @@
-global.AppVersion = '2.0.6';
+global.AppVersion = '2.0.7';
 
 var express = require("express");
 var socket_io = require('socket.io');
