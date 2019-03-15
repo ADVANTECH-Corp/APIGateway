@@ -8,10 +8,18 @@ var ReturnHead = {'Connection':'close',
 				  'Content-Type':'application/json',
 				  'Access-Control-Allow-Origin':'*'};
 
+function setCORSHeaders (res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST');
+  res.setHeader('Access-Control-Allow-Headers', 'accept, content-type');
+}
+
 var procAsynRequest = function( res, status, result ) {
 
 	if( res == undefined ) return;
 
+	setCORSHeaders(res);
+	
 	if( status >= STATUS.BAD_REQUEST ) { // Error
 		res.writeHead(status,ReturnHead);
 		res.end();
@@ -52,7 +60,8 @@ var procReply = function(req, res, next, app ) {
 			code = STATUS.METHOD_NOT_ALLOWED;
 	}	
 
-
+	setCORSHeaders(res);
+	
 	if( code >= STATUS.BAD_REQUEST ) { // Error
 		res.writeHead(code,ReturnHead);
 		res.end();
