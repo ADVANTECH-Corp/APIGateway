@@ -1,7 +1,7 @@
 #!/bin/bash
 PROJECT_TOP=$(cd "$(dirname "$1")/../.."; pwd)
 
-ARCHIVES_TOP=${PROJECT_TOP}/ePack/archives
+ARCHIVES_TOP=${PROJECT_TOP}/installer/archives
 INS_ROOTFS=${ARCHIVES_TOP}/rootfs
 DESTDIR=${INS_ROOTFS}/usr/local/EdgeSense/API-GW
 

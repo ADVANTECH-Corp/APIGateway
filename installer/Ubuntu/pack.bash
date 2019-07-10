@@ -1,6 +1,6 @@
 #!/bin/bash
 EPACK_PATH=
-PROJECT_ARCHIVES=$(cd "$(dirname "$1")/../.."; pwd)/ePack/archives
+PROJECT_ARCHIVES=$(cd "$(dirname "$1")/../.."; pwd)/installer/archives
 
 CURRDIR=$(cd $(dirname $0) && pwd)
 
