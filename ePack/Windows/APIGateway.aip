@@ -2755,8 +2755,8 @@
     <ROW File="inherits_browser.js_2" Component_="inherits.js_2" FileName="INHERI~1.JS|inherits_browser.js" Attributes="0" SourcePath="..\..\node_modules\inherits\inherits_browser.js" SelfReg="false" NextFile="LICENSE_88"/>
     <ROW File="init.js" Component_="init.js" FileName="init.js" Attributes="0" SourcePath="..\..\node_modules\express\lib\middleware\init.js" SelfReg="false" NextFile="query.js"/>
     <ROW File="init_wsn_setting.sh" Component_="advigwrestapi" FileName="INIT_W~1.SH|init_wsn_setting.sh" Attributes="0" SourcePath="..\..\script\init_wsn_setting.sh" SelfReg="false" NextFile="app.js"/>
-    <ROW File="install.js" Component_="app.js" FileName="install.js" Attributes="0" SourcePath="..\..\install.js" SelfReg="false" NextFile="uninstall.js"/>
-    <ROW File="install_apigw.bat" Component_="app.js" FileName="INSTAL~1.BAT|install_apigw.bat" Attributes="0" SourcePath="..\..\install_apigw.bat" SelfReg="false" NextFile="uninstall_apigw.bat"/>
+    <ROW File="install.js" Component_="app.js" FileName="install.js" Attributes="0" SourcePath="misc\install.js" SelfReg="false" NextFile="uninstall.js"/>
+    <ROW File="install_apigw.bat" Component_="app.js" FileName="INSTAL~1.BAT|install_apigw.bat" Attributes="0" SourcePath="misc\install_apigw.bat" SelfReg="false" NextFile="uninstall_apigw.bat"/>
     <ROW File="internal.js" Component_="dbcscodec.js" FileName="internal.js" Attributes="0" SourcePath="..\..\node_modules\body-parser\node_modules\iconv-lite\encodings\internal.js" SelfReg="false" NextFile="sbcscodec.js"/>
     <ROW File="intersection.js" Component_="binarysearch.js" FileName="INTERS~1.JS|intersection.js" Attributes="0" SourcePath="..\..\node_modules\es5-ext\array\#\intersection.js" SelfReg="false" NextFile="iscopy.js"/>
     <ROW File="intersection.js_1" Component_="binarysearch.js_1" FileName="INTERS~1.JS|intersection.js" Attributes="0" SourcePath="..\..\node_modules\es5-ext\test\array\#\intersection.js" SelfReg="false" NextFile="iscopy.js_2"/>
@@ -3079,7 +3079,7 @@
     <ROW File="namespace.js" Component_="client.js_2" FileName="NAMESP~1.JS|namespace.js" Attributes="0" SourcePath="..\..\node_modules\socket.io\lib\namespace.js" SelfReg="false" NextFile="socket.js"/>
     <ROW File="nested.js" Component_="key_cmp.js" FileName="nested.js" Attributes="0" SourcePath="..\..\node_modules\json-stable-stringify\example\nested.js" SelfReg="false" NextFile="str.js"/>
     <ROW File="nested.js_1" Component_="cmp.js" FileName="nested.js" Attributes="0" SourcePath="..\..\node_modules\json-stable-stringify\test\nested.js" SelfReg="false" NextFile="replacer.js"/>
-    <ROW File="node.exe" Component_="node.exe" FileName="node.exe" Attributes="0" SourcePath="..\..\node.exe" SelfReg="false" NextFile="index.js" DigSign="true"/>
+    <ROW File="node.exe" Component_="node.exe" FileName="node.exe" Attributes="0" SourcePath="misc\node.exe" SelfReg="false" NextFile="index.js" DigSign="true"/>
     <ROW File="node.js" Component_="jshintrc_1" FileName="node.js" Attributes="0" SourcePath="..\..\node_modules\body-parser\node_modules\debug\node.js" SelfReg="false" NextFile="npmignore_2"/>
     <ROW File="node.js_1" Component_="jshintrc_3" FileName="node.js" Attributes="0" SourcePath="..\..\node_modules\express\node_modules\debug\node.js" SelfReg="false" NextFile="npmignore_14"/>
     <ROW File="node.js_2" Component_="jshintrc_5" FileName="node.js" Attributes="0" SourcePath="..\..\node_modules\router\node_modules\debug\node.js" SelfReg="false" NextFile="npmignore_31"/>
@@ -3838,8 +3838,8 @@
     <ROW File="undef_globals.js" Component_="undef_globals.js" FileName="UNDEF_~1.JS|undef_globals.js" Attributes="0" SourcePath="..\..\node_modules\typedarray\test\server\undef_globals.js" SelfReg="false" NextFile="tarray.js_1"/>
     <ROW File="unify.js" Component_="alloff.js" FileName="unify.js" Attributes="0" SourcePath="..\..\node_modules\event-emitter\test\unify.js" SelfReg="false" NextFile="unify.js_1"/>
     <ROW File="unify.js_1" Component_="lint_4" FileName="unify.js" Attributes="0" SourcePath="..\..\node_modules\event-emitter\unify.js" SelfReg="false" NextFile="History.md_16"/>
-    <ROW File="uninstall.js" Component_="app.js" FileName="UNINST~1.JS|uninstall.js" Attributes="0" SourcePath="..\..\uninstall.js" SelfReg="false" NextFile="package.json_228"/>
-    <ROW File="uninstall_apigw.bat" Component_="app.js" FileName="UNINST~1.BAT|uninstall_apigw.bat" Attributes="0" SourcePath="..\..\uninstall_apigw.bat" SelfReg="false"/>
+    <ROW File="uninstall.js" Component_="app.js" FileName="UNINST~1.JS|uninstall.js" Attributes="0" SourcePath="misc\uninstall.js" SelfReg="false" NextFile="package.json_228"/>
+    <ROW File="uninstall_apigw.bat" Component_="app.js" FileName="UNINST~1.BAT|uninstall_apigw.bat" Attributes="0" SourcePath="misc\uninstall_apigw.bat" SelfReg="false"/>
     <ROW File="uniq.js" Component_="binarysearch.js" FileName="uniq.js" Attributes="0" SourcePath="..\..\node_modules\es5-ext\array\#\uniq.js" SelfReg="false" NextFile="implement.js_12"/>
     <ROW File="uniq.js_1" Component_="binarysearch.js_1" FileName="uniq.js" Attributes="0" SourcePath="..\..\node_modules\es5-ext\test\array\#\uniq.js" SelfReg="false" NextFile="implement.js_70"/>
     <ROW File="unknown.js" Component_="all_bool.js" FileName="unknown.js" Attributes="0" SourcePath="..\..\node_modules\minimist\test\unknown.js" SelfReg="false" NextFile="whitespace.js"/>
@@ -3946,7 +3946,7 @@
     <ROW Path="&lt;AI_DICTS&gt;ui_en.ail"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.DigCertStoreComponent">
-    <ROW DigitalCertificate="Tools\Advantech.pfx" TimeStampUrl="http://timestamp.verisign.com/scripts/timstamp.dll" SignerDescription="[|ProductName]" SignOptions="7" SignTool="0" Password="0899EAA49593B7035080F453EA42F411"/>
+    <ROW DigitalCertificate="Signature\Advantech.pfx" TimeStampUrl="http://timestamp.verisign.com/scripts/timstamp.dll" SignerDescription="[|ProductName]" SignOptions="7" SignTool="0" Password="0899EAA49593B7035080F453EA42F411"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.FragmentComponent">
     <ROW Fragment="CommonUI.aip" Path="&lt;AI_FRAGS&gt;CommonUI.aip"/>
@@ -3983,7 +3983,7 @@
     <ROW Name="lzmaextractor.dll" SourcePath="&lt;AI_CUSTACTS&gt;lzmaextractor.dll"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiControlComponent">
-    <ROW Dialog_="LicenseAgreementDlg" Control="AgreementText" Type="ScrollableText" X="20" Y="60" Width="330" Height="120" Attributes="7" Text="..\EULA\EULA.rtf" Order="400" TextLocId="Control.Text.LicenseAgreementDlg#AgreementText" MsiKey="LicenseAgreementDlg#AgreementText"/>
+    <ROW Dialog_="LicenseAgreementDlg" Control="AgreementText" Type="ScrollableText" X="20" Y="60" Width="330" Height="120" Attributes="7" Text="EULA\EULA.rtf" Order="400" TextLocId="Control.Text.LicenseAgreementDlg#AgreementText" MsiKey="LicenseAgreementDlg#AgreementText"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiControlEventComponent">
     <ROW Dialog_="WelcomeDlg" Control_="Next" Event="NewDialog" Argument="LicenseAgreementDlg" Condition="AI_INSTALL" Ordering="1"/>
