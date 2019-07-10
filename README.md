@@ -18,7 +18,8 @@ check service status
 
 ### build installer for Ubuntu
 ```sh
-cd ePack/Ubuntu
+cd installer/Ubuntu
+./archives.bash
 ./pack.bash
 ```
 
