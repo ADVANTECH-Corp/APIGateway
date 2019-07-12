@@ -16,7 +16,11 @@ check service status
 
 ## Development
 
-### build installer for Ubuntu
+### Build installer for Windows
+1. Run installer/Windows/archives.bat
+2. Using Advanced Installer to open installer/Windows/APIGateway.aip and build
+
+### Build installer for Ubuntu
 ```sh
 cd installer/Ubuntu
 ./archives.bash
@@ -27,7 +31,7 @@ cd installer/Ubuntu
 1. Edit app.js
 > global.AppVersion = 'x.x.x';
 
-2. Edit ePack/Ubuntu/ePack_conf/ePack_custom.bash
+2. Edit installer/Ubuntu/ePack_conf/ePack_custom.bash
 > PROJECT_VER=x.x.x
 
-3. Using Advanced Installer to open installer/project/APIGateway.aip and edit ProductVersion.
+3. Using Advanced Installer to open installer/Windows/APIGateway.aip and edit ProductVersion.
