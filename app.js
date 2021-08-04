@@ -1,4 +1,4 @@
-global.AppVersion = '2.0.8';
+global.AppVersion = '2.0.9';
 
 var express = require("express");
 var socket_io = require('socket.io');
@@ -11,9 +11,24 @@ var basicAuth = require('basic-auth');
 var http = require('http');
 var appRouter = require("./routes/routes.js");
 var WebSocketServer = require('ws').Server;
+var initAdvLog = require('advlog');
+var path = require("path");
 
 var ServerPort = 3000;
 var enableAuth = 0;
+
+
+// advlog
+try{
+	var logfilepath = path.resolve("./config/log.json");
+	console.log('logpath '+logfilepath);
+	//var initAdvLog = require('advlog');
+	// Init AdvLog-Node.js
+	initAdvLog(logfilepath);
+	}catch(e){
+        console.log('load advlog failed');
+};
+
 
 // OPTIONS
 app.use(function(req, res, next) {

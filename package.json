@@ -1,6 +1,6 @@
 {
   "name": "eis_restapi",
-  "version": "1.0.0",
+  "version": "2.0.9",
   "description": "EIS REST API",
   "main": "app.js",
   "scripts": {
