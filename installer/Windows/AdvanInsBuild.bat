@@ -4,7 +4,7 @@ REM ================================================================
 
 SET KEY_NAME=HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment
 SET VALUE_NAME=PROCESSOR_ARCHITECTURE
-SET ROOT_FOLDER=%CD%
+SET ROOT_FOLDER=%~dp0
 
 for /F "usebackq tokens=3" %%A IN (`reg query "%KEY_NAME%" /v "%VALUE_NAME%" 2^>nul ^| find "%VALUE_NAME%"`) do (
   If %%A==AMD64 SET OS_TYPE=AMD64
