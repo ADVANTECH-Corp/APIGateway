@@ -10,7 +10,7 @@ robocopy ..\..\routes archives\routes /E
 robocopy ..\..\views archives\views /E
 
 curl --output archives/node.exe https://gitlab.edgecenter.io/edgesense-open/nodejs-binary/-/raw/node-v12.14.0-win-x86/node.exe
-curl --output archives/advsc.exe https://gitlab.edgecenter.io/edgesense-open/advsc-binary/-/raw/master/win-x86/1.0.1/advsc.exe
+curl --output archives/advsc.exe https://gitlab.edgecenter.io/edgesense-open/advsc-binary/-/raw/master/win-x86/1.0.6/advsc.exe
 xcopy ..\advsc.ini archives
 
 pause
