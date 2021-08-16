@@ -4,6 +4,7 @@ mkdir archives
 xcopy ..\..\app.js archives
 xcopy ..\..\package.json archives
 robocopy ..\..\apps archives\apps /E
+robocopy ..\..\config archives\config /E
 robocopy ..\..\inc archives\inc /E
 robocopy ..\..\node_modules archives\node_modules /E
 robocopy ..\..\routes archives\routes /E
