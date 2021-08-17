@@ -14,4 +14,4 @@ curl --output archives/node.exe https://gitlab.edgecenter.io/edgesense-open/node
 curl --output archives/advsc.exe https://gitlab.edgecenter.io/edgesense-open/advsc-binary/-/raw/master/win-x86/1.0.6/advsc.exe
 xcopy ..\advsc.ini archives
 
-pause
+rem pause
